@@ -28,6 +28,7 @@ import android.util.Log;
 
 import com.google.android.gms.gcm.GcmListenerService;
 
+import io.goodway.infotel.LoginActivity;
 import io.goodway.infotel.R;
 import io.goodway.infotel.activities.MainActivity;
 import io.goodway.infotel.model.communication.Message;
@@ -49,28 +50,30 @@ public class MsgService extends GcmListenerService {
     @Override
     public void onMessageReceived(String from, Bundle data) {
 
-
+        Log.d(TAG, data.toString());
         Log.d(TAG, "From: " + from);
 
+        Bundle notification = data.getBundle("notification");
+        String title = notification.getString("title");
+        String body = notification.getString("body");
         if (from.startsWith("/topic/")) {
             // message received from some topic.
         } else {
             // normal downstream message.
             if(data.getString("type").equals("notification")){
-                String title = data.getString("title");
                 String large_icon = data.getString("icon");
-                String content = data.getString("content");
-
-                sendNotification(new Notification(title, large_icon, content));:
+                sendNotification(new Notification(title, large_icon, body));
             }
             else if(data.getString("type").equals("message")){
                 int sender_id = data.getInt("sender_id");
                 String large_icon = data.getString("icon");
                 String content = data.getString("content");
-                int attachment_id = data.getInt("attachment_id");
+                int attachment_type = data.getInt("attachment_type");
+                String attachment_url = data.getString("attachment_url");
+
                 String date = data.getString("date");
 
-                Message m = new Message(sender_id, content, attachment_id);
+                Message m = new Message(sender_id, content, attachment_type, attachment_url, false);
 
 
             }
@@ -99,7 +102,7 @@ public class MsgService extends GcmListenerService {
      * @param n Notification object.
      */
     private void sendNotification(Notification n) {
-        Intent intent = new Intent(this, MainActivity.class);
+        Intent intent = new Intent(this, LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
                 PendingIntent.FLAG_ONE_SHOT);
@@ -108,9 +111,10 @@ public class MsgService extends GcmListenerService {
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(n.getTitle())
-                .setLargeIcon(Image.getBitmapFromURL(n.getIcon()))
+                .setLargeIcon(Image.GetBitmapClippedCircle(Image.getBitmapFromURL(n.getIcon())))
                 .setContentText(n.getContent())
                 .setAutoCancel(true)
+                .setColor(getColor(R.color.colorAccent))
                 .setSound(defaultSoundUri)
                 .setContentIntent(pendingIntent);
 

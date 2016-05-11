@@ -7,14 +7,23 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.design.widget.TabLayout;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.goodway.infotel.R;
+import io.goodway.infotel.fragments.ChatFragment;
 import io.goodway.infotel.sync.gcm.QuickstartPreferences;
 import io.goodway.infotel.sync.gcm.RegistrationIntentService;
 
@@ -30,12 +39,71 @@ public class MainActivity extends AppCompatActivity{
     private BroadcastReceiver mRegistrationBroadcastReceiver;
     private boolean isReceiverRegistered;
 
+    //
+    private String[] titles;
+
+    private ViewPager viewPager;
+    private TabLayout tabLayout;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setupGCM();
+
+        viewPager = (ViewPager) findViewById(R.id.viewpager);
+        tabLayout = (TabLayout) findViewById(R.id.tabs);
+
+        titles = new String[]{"Accueil",
+                //"Notifications",
+                "Profil"};
+        setupViewPager(viewPager);
+
+        tabLayout.setupWithViewPager(viewPager);
+
+        tabLayout.getTabAt(0).setIcon(R.mipmap.ic_launcher);
+        //tabLayout.getTabAt(1).setIcon(R.drawable.ic_public_white_48dp);
+        //tabLayout.getTabAt(1).setIcon(R.mipmap.ic_launcher);
     }
+
+    private void setupViewPager(ViewPager viewPager) {
+        ViewPagerAdapter adapter = new ViewPagerAdapter(getSupportFragmentManager());
+
+        ChatFragment chatFragment = ChatFragment.newInstance(getIntent().getExtras());
+
+        adapter.addFragment(chatFragment);
+        //adapter.addFragment(chatFragment);
+
+        viewPager.setAdapter(adapter);
+    }
+
+    class ViewPagerAdapter extends FragmentStatePagerAdapter {
+        private final List<Fragment> mFragmentList = new ArrayList<>();
+
+        public ViewPagerAdapter(FragmentManager manager) {
+            super(manager);
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            return mFragmentList.get(position);
+        }
+
+        @Override
+        public int getCount() {
+            return mFragmentList.size();
+        }
+
+        public void addFragment(Fragment fragment) {
+            mFragmentList.add(fragment);
+        }
+
+        @Override
+        public CharSequence getPageTitle(int position) {
+            return "";
+        }
+    }
+
 
     /**
      * Setup the GCM service to listen for incoming notifications
