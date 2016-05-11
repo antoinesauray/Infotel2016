@@ -1,0 +1,35 @@
+{
+  "project_info": {
+    "project_number": "612226642491",
+    "project_id": "infotel-90296"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612226642491:android:bc831f2b4b8b3849",
+        "android_client_info": {
+          "package_name": "io.goodway.infotel"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7LrcU6ozm3a_MfL9Em0bBpwB6BWHaphE"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,9 @@
+image: gfx2015/android
+Build:
+  stage: build
+  script:
+       - ./gradlew assembleDebug
+  only:
+    - staging
+  tags:
+    - docker
