@@ -29,12 +29,12 @@ import com.google.android.gms.iid.InstanceID;
 
 import java.io.IOException;
 
-import io.goodway.pushtime.R;
+import io.goodway.infotel.R;
 
 public class RegistrationIntentService extends IntentService {
 
     private static final String TAG = "RegIntentService";
-    private static final String[] TOPICS = {"global", "1-0-StopPoint_BJOI2"};
+    private static final String[] TOPICS = {"global"};
 
     public RegistrationIntentService() {
         super(TAG);
@@ -89,6 +89,7 @@ public class RegistrationIntentService extends IntentService {
      */
     private void sendRegistrationToServer(String token) {
         // Add custom implementation, as needed.
+        Log.d(TAG, token);
     }
 
     /**
@@ -100,8 +101,9 @@ public class RegistrationIntentService extends IntentService {
     // [START subscribe_topics]
     private void subscribeTopics(String token) throws IOException {
         GcmPubSub pubSub = GcmPubSub.getInstance(this);
+
         for (String topic : TOPICS) {
-            pubSub.subscribe(token, "/topics/" + topic, null);
+            pubSub.subscribe(token, "/topic/" + topic, null);
         }
     }
     // [END subscribe_topics]
