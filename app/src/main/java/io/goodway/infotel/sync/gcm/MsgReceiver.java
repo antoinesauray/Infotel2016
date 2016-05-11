@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.content.WakefulBroadcastReceiver;
+import android.util.Log;
 
 public class MsgReceiver extends WakefulBroadcastReceiver {
     @Override
@@ -24,8 +25,10 @@ public class MsgReceiver extends WakefulBroadcastReceiver {
 
 
         LocalBroadcastManager.getInstance(context).sendBroadcast(msgrcv);
-        ComponentName comp = new ComponentName(context.getPackageName(),MsgService.class.getName());
+        ComponentName comp = new ComponentName(context.getPackageName(),GCMService.class.getName());
         startWakefulService(context, (intent.setComponent(comp)));
         setResultCode(Activity.RESULT_OK);
+
+        Log.d("yolo", "yolo");
     }
 }

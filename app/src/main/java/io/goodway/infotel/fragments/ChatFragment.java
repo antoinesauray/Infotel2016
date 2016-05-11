@@ -1,13 +1,18 @@
 package io.goodway.infotel.fragments;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +22,8 @@ import android.widget.ImageButton;
 import io.goodway.infotel.R;
 import io.goodway.infotel.adapters.MessageAdapter;
 import io.goodway.infotel.model.communication.Message;
+import io.goodway.infotel.sync.gcm.GCMService;
+import io.goodway.infotel.sync.gcm.QuickstartPreferences;
 
 /**
  * Created by antoine on 5/11/16.
@@ -30,6 +37,25 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     private EditText message;
 
     private MessageAdapter adapter;
+
+    // Our handler for received Intents. This will be called whenever an Intent
+// with an action named "custom-event-name" is broadcasted.
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Get extra data included in the Intent
+            Message message = intent.getParcelableExtra("message");
+            Log.d("receiver", "Got message: " + message);
+            adapter.add(message);
+        }
+    };
+
+    @Override
+    public void onDestroy() {
+        // Unregister since the activity is about to be closed.
+        LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(mMessageReceiver);
+        super.onDestroy();
+    }
 
     public static ChatFragment newInstance(Bundle args) {
         ChatFragment fragment = new ChatFragment();
@@ -50,7 +76,7 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
         layoutManager = new LinearLayoutManager(getContext());
 
-        adapter = new MessageAdapter(recyclerView, null);
+        adapter = new MessageAdapter(getContext(), recyclerView, null);
 
 
         recyclerView.setLayoutManager(layoutManager);
@@ -58,6 +84,9 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
         message.addTextChangedListener(this);
         send.setOnClickListener(this);
+
+        LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
+                new IntentFilter(GCMService.MESSAGE_RECEIVED));
 
         return root;
     }

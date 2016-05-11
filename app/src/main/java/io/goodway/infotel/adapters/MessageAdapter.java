@@ -1,6 +1,7 @@
 package io.goodway.infotel.adapters;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.support.v7.widget.RecyclerView;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -29,15 +30,16 @@ import io.goodway.infotel.utils.Image;
 public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private List<Message> mDataset;
-    private Context activity;
+    private Context context;
     private MessageCallback callback;
     private RecyclerView recyclerView;
 
     private static final String TAG="LINE_ADAPTER";
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public MessageAdapter(RecyclerView recyclerView, MessageCallback callback) {
+    public MessageAdapter(Context context, RecyclerView recyclerView, MessageCallback callback) {
         mDataset = new ArrayList<Message>();
+        this.context = context;
         this.callback = callback;
         this.recyclerView = recyclerView;
     }
@@ -56,11 +58,16 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 v = LayoutInflater.from(parent.getContext()).inflate(R.layout.view_message_image, parent, false);
                 break;
             case Message.MUSIC:
+                v = LayoutInflater.from(parent.getContext()).inflate(R.layout.view_message, parent, false);
                 break;
             case Message.PDF:
+                v = LayoutInflater.from(parent.getContext()).inflate(R.layout.view_message, parent, false);
+                break;
+            default:
+                v = LayoutInflater.from(parent.getContext()).inflate(R.layout.view_message, parent, false);
                 break;
         }
-        return new MessageViewHolder((LinearLayout) v.findViewById(R.id.mainLayout));
+        return new MessageViewHolder((LinearLayout) v);
     }
 
     // Replace the contents of a view (invoked by the layout manager)
@@ -82,7 +89,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             case Message.IMAGE:
                 ImageMessageViewHolder imHolder = (ImageMessageViewHolder)holder;
                 imHolder.content.setText(m.getContent());
-                Picasso.with(activity)
+                Picasso.with(context)
                         .load(m.getAttachment_url())
                         //.error(R.mipmap)
                         .resize(100, 100)
