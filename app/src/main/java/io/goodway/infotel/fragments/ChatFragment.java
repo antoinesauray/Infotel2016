@@ -18,10 +18,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 import io.goodway.infotel.R;
 import io.goodway.infotel.adapters.MessageAdapter;
 import io.goodway.infotel.model.communication.Message;
+import io.goodway.infotel.sync.HttpClient;
 import io.goodway.infotel.sync.gcm.GCMService;
 import io.goodway.infotel.sync.gcm.QuickstartPreferences;
 
@@ -38,6 +40,8 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
     private MessageAdapter adapter;
 
+    private int sender_id=1;
+
     // Our handler for received Intents. This will be called whenever an Intent
 // with an action named "custom-event-name" is broadcasted.
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
@@ -45,8 +49,10 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
         public void onReceive(Context context, Intent intent) {
             // Get extra data included in the Intent
             Message message = intent.getParcelableExtra("message");
-            Log.d("receiver", "Got message: " + message);
-            adapter.add(message);
+            if(message.getSender_id()!=sender_id){
+                Log.d("receiver", "Got message: " + message.getContent());
+                adapter.add(message);
+            }
         }
     };
 
@@ -115,8 +121,17 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     public void onClick(View v) {
         String content = message.getText().toString();
         if(content.length()>0){
-            adapter.add(new Message(1, content, 1, null, true));
+            final Message m = new Message(sender_id, content, Message.MESSAGE, null, true);
+            adapter.add(m);
             message.getText().clear();
+            HttpClient.Post.messageInTopic(getContext(), new HttpClient.Action<Boolean>() {
+                @Override
+                public void action(Boolean e) {
+                    if(!e){
+                        Toast.makeText(ChatFragment.this.getContext(), "Impossible d'envoyer le message", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }, m, "global");
         }
     }
 }

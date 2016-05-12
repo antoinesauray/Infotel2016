@@ -10,7 +10,7 @@ import java.util.GregorianCalendar;
  */
 public class Message implements Parcelable {
 
-    public static final int MESSAGE=1, IMAGE=2, MUSIC=3, PDF=4;
+    public static final int MESSAGE=0, IMAGE=1, MUSIC=2, PDF=3;
 
     public int getSender_id() {
         return sender_id;

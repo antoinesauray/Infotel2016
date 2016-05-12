@@ -3,6 +3,7 @@ package io.goodway.infotel.adapters;
 import android.content.Context;
 import android.graphics.Color;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -76,7 +77,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
         Message m = mDataset.get(position);
+        Log.d("content", m.getContent());
         int viewType = getItemViewType(position);
+        Log.d("viewType", "viewType="+viewType);
         switch (viewType){
             case Message.MESSAGE:
                 MessageViewHolder mHolder = (MessageViewHolder)holder;
@@ -100,6 +103,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             case Message.MUSIC:
                 break;
             case Message.PDF:
+                break;
+            default:
+                Log.d("shit", "shit");
                 break;
         }
     }
