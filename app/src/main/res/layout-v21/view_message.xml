@@ -8,14 +8,15 @@
     android:layout_marginTop="2dp"
     android:layout_marginBottom="2dp"
     android:layout_marginLeft="@dimen/textMarginVertical"
-    android:layout_marginRight="16dp"
+    android:layout_marginRight="@dimen/textMarginVertical"
     android:orientation="horizontal">
 
     <ImageView
         android:id="@+id/avatar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="@dimen/textMarginHorizontal"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginLeft="@dimen/textMarginHorizontal"
         android:layout_marginRight="@dimen/textMarginHorizontal"
         android:src="@mipmap/ic_launcher"/>
 
@@ -23,11 +24,9 @@
 
         xmlns:card_view="http://schemas.android.com/apk/res-auto"
         android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_marginTop="@dimen/textMarginVertical"
-        android:layout_marginBottom="@dimen/textMarginVertical"
-        android:paddingLeft="@dimen/textMarginHorizontal"
-        android:paddingRight="@dimen/textMarginHorizontal"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="32dp"
+        android:padding="@dimen/textMarginHorizontal"
         android:animateLayoutChanges="true"
         android:gravity="center_vertical"
         android:layout_gravity="center_vertical"
@@ -36,15 +35,13 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="vertical">
             <TextView
                 android:id="@+id/content"
-                android:text="test"
                 android:layout_gravity="center_vertical"
-                android:layout_marginLeft="@dimen/textMarginHorizontal"
-                android:layout_marginRight="@dimen/textMarginHorizontal"
+                android:layout_margin="@dimen/textMarginHorizontal"
                 android:gravity="center_vertical"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

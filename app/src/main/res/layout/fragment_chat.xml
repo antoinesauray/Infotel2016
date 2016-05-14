@@ -39,7 +39,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@null"
-                android:alpha="0.54"
                 android:tint="@color/colorPrimary"
                 android:src="@mipmap/ic_send_black_36dp"/>
 
@@ -53,5 +52,23 @@
         android:layout_above="@id/userInput">
     </android.support.v7.widget.RecyclerView>
 
-
+    <LinearLayout
+        android:id="@+id/select_channel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:orientation="vertical">
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:alpha="0.54"
+            android:src="@mipmap/ic_chat_black_48dp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_gravity="center_horizontal"
+            android:text="@string/select_channel"/>
+    </LinearLayout>
 </RelativeLayout>

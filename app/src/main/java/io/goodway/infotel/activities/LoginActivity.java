@@ -1,8 +1,9 @@
-package io.goodway.infotel;
+package io.goodway.infotel.activities;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
@@ -19,6 +20,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -28,8 +30,23 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.goodway.infotel.R;
+import io.goodway.infotel.model.User;
+import io.goodway.infotel.sync.HttpRequest;
+import io.goodway.infotel.utils.Constants;
+import io.goodway.infotel.utils.Preferences;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
 
 import static android.Manifest.permission.READ_CONTACTS;
 
@@ -50,10 +67,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private static final String[] DUMMY_CREDENTIALS = new String[]{
             "foo@example.com:hello", "bar@example.com:world"
     };
-    /**
-     * Keep track of the login task to ensure we can cancel it if requested.
-     */
-    private UserLoginTask mAuthTask = null;
+
+    private final String TAG = "LoginActivity";
 
     // UI references.
     private AutoCompleteTextView mEmailView;
@@ -94,6 +109,13 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+
+        String email = Preferences.getStringPreference(this, "email");
+        String password = Preferences.getStringPreference(this, "password");
+
+        if(email!=null && password!=null){
+            attemptLogin(email, password);
+        }
     }
 
     private void populateAutoComplete() {
@@ -145,19 +167,18 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      * If there are form errors (invalid email, missing fields, etc.), the
      * errors are presented and no actual login attempt is made.
      */
-    private void attemptLogin() {
-        if (mAuthTask != null) {
-            return;
-        }
 
+    private void attemptLogin(){
         // Reset errors.
         mEmailView.setError(null);
         mPasswordView.setError(null);
 
         // Store values at the time of the login attempt.
-        String email = mEmailView.getText().toString();
-        String password = mPasswordView.getText().toString();
-
+        final String email = mEmailView.getText().toString();
+        final String password = mPasswordView.getText().toString();
+        attemptLogin(email, password);
+    }
+    private void attemptLogin(final String email, final String password) {
         boolean cancel = false;
         View focusView = null;
 
@@ -187,8 +208,50 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mAuthTask = new UserLoginTask(email, password);
-            mAuthTask.execute((Void) null);
+            HttpRequest.auth(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    if(response.code()==200){
+                        try {
+                            JSONObject jsonResult = new JSONObject(response.body().string());
+                            JSONObject user = jsonResult.optJSONObject("user");
+                            User u = new User(
+                                    user.optInt("id"),
+                                    user.optString("firstname"),
+                                    user.optString("lastname"),
+                                    user.optString("mail"),
+                                    user.optString("avatar"),
+                                    user.optString("token"));
+
+                            Preferences.addStringPreference(LoginActivity.this, Constants.EMAIL, email);
+                            Preferences.addStringPreference(LoginActivity.this, Constants.PASSWORD, password);
+
+                            Intent i = new Intent(LoginActivity.this, MainActivity.class);
+                            i.putExtra(Constants.USER, u);
+                            startActivity(i);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
+                    }
+                    else if(response.code()==401){
+                        Log.d(TAG, "Echec de l'authentification");
+                        Preferences.removeStringPreference(LoginActivity.this, Constants.EMAIL);
+                        Preferences.removeStringPreference(LoginActivity.this, Constants.PASSWORD);
+                        showProgress(false);
+
+                        mEmailView.setText(email);
+
+                        mPasswordView.setError(getString(R.string.error_incorrect_password));
+                        mPasswordView.requestFocus();
+                    }
+                }
+            }, email, password);
         }
     }
     private boolean isEmailValid(String email) {
@@ -289,63 +352,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                         android.R.layout.simple_dropdown_item_1line, emailAddressCollection);
 
         mEmailView.setAdapter(adapter);
-    }
-
-    /**
-     * Represents an asynchronous login/registration task used to authenticate
-     * the user.
-     */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
-
-        private final String mEmail;
-        private final String mPassword;
-
-        UserLoginTask(String email, String password) {
-            mEmail = email;
-            mPassword = password;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
-
-            try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
-
-            for (String credential : DUMMY_CREDENTIALS) {
-                String[] pieces = credential.split(":");
-                if (pieces[0].equals(mEmail)) {
-                    // Account exists, return true if the password matches.
-                    return pieces[1].equals(mPassword);
-                }
-            }
-
-            // TODO: register the new account here.
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mAuthTask = null;
-            showProgress(false);
-
-            if (success) {
-                finish();
-            } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mAuthTask = null;
-            showProgress(false);
-        }
     }
 }
 

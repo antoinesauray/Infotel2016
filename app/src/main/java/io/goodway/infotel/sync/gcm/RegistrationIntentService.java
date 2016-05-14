@@ -60,7 +60,7 @@ public class RegistrationIntentService extends IntentService {
             // TODO: Implement this method to send any registration to your app's servers.
             sendRegistrationToServer(token);
 
-            // Subscribe to topic channels
+            // Subscribe to topic subscriptions
             subscribeTopics(token);
 
             // You should store a boolean that indicates whether the generated token has been
@@ -103,7 +103,7 @@ public class RegistrationIntentService extends IntentService {
         GcmPubSub pubSub = GcmPubSub.getInstance(this);
 
         for (String topic : TOPICS) {
-            pubSub.subscribe(token, "/topic/" + topic, null);
+            pubSub.subscribe(token, "/topics/" + topic, null);
         }
     }
     // [END subscribe_topics]

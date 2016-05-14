@@ -13,4 +13,8 @@
     <string name="permission_rationale">"Contacts permissions are needed for providing email
         completions."
     </string>
+
+    <string name="no_channels">Oups vous n\'avez aucun channel</string>
+    <string name="add">Ajouter</string>
+    <string name="select_channel">Selectionner un channel en ouvrant le menu à gauche</string>
 </resources>

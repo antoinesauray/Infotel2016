@@ -2,6 +2,7 @@ package io.goodway.infotel.model.communication;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 
 import java.util.GregorianCalendar;
 
@@ -10,7 +11,7 @@ import java.util.GregorianCalendar;
  */
 public class Message implements Parcelable {
 
-    public static final int MESSAGE=1, IMAGE=2, MUSIC=3, PDF=4;
+    public static final int TEXT =0, IMAGE=1, FILE=2, MUSIC=3, PDF=4;
 
     public int getSender_id() {
         return sender_id;
@@ -24,7 +25,19 @@ public class Message implements Parcelable {
 
     private String content;
 
-    public String getAttachment_url() {
+    public String getName() {
+        return name;
+    }
+
+    private String name;
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    private String avatar;
+
+    public String getAttachment() {
         return attachment_url;
     }
 
@@ -44,8 +57,10 @@ public class Message implements Parcelable {
 
     private GregorianCalendar date;
 
-    public Message(int sender_id, String content, int attachment_type, String attachment_url, boolean from_me){
+    public Message(int sender_id, String name, String avatar, String content, int attachment_type, String attachment_url, boolean from_me){
         this.sender_id=sender_id;
+        this.name=name;
+        this.avatar=avatar;
         this.content = content;
         this.attachment_url =attachment_url;
         this.attachment_type = attachment_type;
@@ -54,9 +69,12 @@ public class Message implements Parcelable {
 
     public Message(Parcel in){
         sender_id = in.readInt();
+        name = in.readString();
+        avatar = in.readString();
         content = in.readString();
-        attachment_url = in.readString();
         attachment_type = in.readInt();
+        attachment_url = in.readString();
+        Log.d("PARCEL url=", "url="+attachment_url);
         from_me = in.readByte() != 0;
     }
 
@@ -68,9 +86,11 @@ public class Message implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(sender_id);
+        dest.writeString(name);
+        dest.writeString(avatar);
         dest.writeString(content);
-        dest.writeString(attachment_url);
         dest.writeInt(attachment_type);
+        dest.writeString(attachment_url);
         dest.writeByte((byte) (from_me ? 1 : 0));
     }
 

@@ -6,5 +6,7 @@
     <dimen name="textMarginVertical">8dp</dimen>
     <dimen name="textMarginHorizontal">8dp</dimen>
 
+    <dimen name="leftPaddingDrawer">16dp</dimen>
+
     <dimen name="card_elevation">4dp</dimen>
 </resources>

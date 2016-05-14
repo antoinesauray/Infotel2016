@@ -18,12 +18,26 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.Toast;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 
 import io.goodway.infotel.R;
 import io.goodway.infotel.adapters.MessageAdapter;
+import io.goodway.infotel.model.User;
+import io.goodway.infotel.model.communication.Channel;
 import io.goodway.infotel.model.communication.Message;
+import io.goodway.infotel.sync.HttpRequest;
 import io.goodway.infotel.sync.gcm.GCMService;
-import io.goodway.infotel.sync.gcm.QuickstartPreferences;
+import io.goodway.infotel.utils.Constants;
+import io.goodway.infotel.utils.Debug;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
 
 /**
  * Created by antoine on 5/11/16.
@@ -38,6 +52,16 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
     private MessageAdapter adapter;
 
+    private String name="Antoine";
+    private String avatar="http://data.goodway.io/img/alexis.jpg";
+
+    private String TAG = "ChatFragment";
+
+    private Channel activeChannel;
+    private User activeUser;
+
+    private View selectChannel;
+
     // Our handler for received Intents. This will be called whenever an Intent
 // with an action named "custom-event-name" is broadcasted.
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
@@ -45,8 +69,11 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
         public void onReceive(Context context, Intent intent) {
             // Get extra data included in the Intent
             Message message = intent.getParcelableExtra("message");
-            Log.d("receiver", "Got message: " + message);
-            adapter.add(message);
+            if(message.getSender_id()!= Debug.SENDER_ID){
+            Log.d("displaying type", "type="+message.getAttachment_type());
+            Log.d("displaying image", "url="+message.getAttachment());
+                adapter.add(message);
+            }
         }
     };
 
@@ -67,6 +94,8 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         root = inflater.inflate(R.layout.fragment_chat, container, false);
 
+        activeUser = getArguments().getParcelable(Constants.USER);
+
         recyclerView = (RecyclerView) root.findViewById(R.id.list);
         send = (ImageButton) root.findViewById(R.id.send);
         message = (EditText) root.findViewById(R.id.message);
@@ -85,10 +114,18 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
         message.addTextChangedListener(this);
         send.setOnClickListener(this);
 
+        selectChannel = root.findViewById(R.id.select_channel);
+
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
                 new IntentFilter(GCMService.MESSAGE_RECEIVED));
 
+        //activeChannel = new Channel(1, "Général");
         return root;
+    }
+
+    public void onResume(){
+        super.onResume();
+        switchChannel(activeChannel);
     }
 
     @Override
@@ -115,8 +152,77 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     public void onClick(View v) {
         String content = message.getText().toString();
         if(content.length()>0){
-            adapter.add(new Message(1, content, 1, null, true));
+            final Message m = new Message(Debug.SENDER_ID, name, avatar, content, Message.TEXT, "http://www.infotel.com/wp-content/uploads/2013/03/logo.png", true);
+            adapter.add(m);
             message.getText().clear();
+            HttpRequest.messageToTopic(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    Toast.makeText(ChatFragment.this.getContext(), "Impossible d'envoyer le message", Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    if(response.code()==200){
+                        Toast.makeText(ChatFragment.this.getContext(), "Message reçu par le serveur", Toast.LENGTH_SHORT).show();
+                        Log.d(TAG, response.code()+"");
+                    }
+                    else{
+                        Log.d(TAG, response.code()+"");
+                    }
+                }
+            }, m, 1); // 1 est temporaire
+        }
+    }
+
+    public void switchChannel(final Channel channel){
+        if(channel!=null) {
+            activeChannel = channel;
+            Log.d(TAG, "switching to channel " + channel.getName());
+            selectChannel.setVisibility(View.GONE);
+            message.setEnabled(true);
+            send.setEnabled(true);
+            adapter.clear();
+            HttpRequest.messages(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    if (response.code() == 200) {
+                        JSONObject jsonResult = null;
+                        try {
+                            jsonResult = new JSONObject(response.body().string());
+                            JSONArray channels = jsonResult.optJSONArray("messages");
+                            int length = channels.length();
+                            Log.d(TAG, "retrieved "+length+" messages on channel "+channel.getName());
+                            for (int i = 0; i < length; i++) {
+                                final JSONObject obj = channels.optJSONObject(i);
+                                final int sender_id = obj.optInt("sender_id");
+                                getActivity().runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        adapter.add(new Message(
+                                                sender_id,
+                                                obj.optString("name"),
+                                                obj.optString("avatar"),
+                                                obj.optString("content"),
+                                                obj.optInt("attachment_type"),
+                                                obj.optString("attachment"),
+                                                sender_id == activeUser.getId()
+                                        ));
+                                    }
+                                });
+
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }, channel);
         }
     }
 }
