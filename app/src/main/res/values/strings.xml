@@ -17,4 +17,7 @@
     <string name="no_channels">Oups vous n\'avez aucun channel</string>
     <string name="add">Ajouter</string>
     <string name="select_channel">Selectionner un channel en ouvrant le menu à gauche</string>
+    <string name="add_channel">Ajouter un channel</string>
+    <string name="connection_failed">La connexion a échoué</string>
+    <string name="retry">Réessayer</string>
 </resources>

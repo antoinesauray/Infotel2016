@@ -61,18 +61,46 @@
         android:layout_gravity="start"
         android:background="@color/colorPrimary"
         android:orientation="vertical">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
         <include
             android:id="@+id/header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
             layout="@layout/drawer_header"/>
+        <LinearLayout android:id="@+id/add_channel"
+            android:orientation="horizontal" android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="add"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:background="@drawable/drawer_item_background">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:src="@mipmap/ic_add_white_24dp"
+                android:layout_marginLeft="16dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
+                android:textSize="18sp"
+                android:textColor="@android:color/white"
+                android:text="@string/add_channel"/>
+
+        </LinearLayout>
+
         <android.support.v7.widget.RecyclerView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_below="@id/header"
             android:id="@+id/channels">
     </android.support.v7.widget.RecyclerView>
+        </LinearLayout>
         <LinearLayout
             android:id="@+id/no_channels"
             android:layout_width="wrap_content"
@@ -100,6 +128,34 @@
                 android:gravity="center_horizontal"
                 android:textColor="@android:color/white"
                 android:text="@string/add"/>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/connexion_failed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="retry"
+            android:gravity="center_horizontal"
+            android:layout_centerInParent="true"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:textColor="@android:color/white"
+                android:text="@string/connection_failed"/>
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_horizontal"
+                android:src="@mipmap/ic_mood_bad_white_36dp"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_horizontal"
+                android:textColor="@android:color/white"
+                android:text="@string/retry"/>
         </LinearLayout>
 
     </RelativeLayout>

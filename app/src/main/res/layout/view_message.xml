@@ -17,8 +17,7 @@
         android:layout_height="40dp"
         android:layout_gravity="center_vertical"
         android:layout_marginLeft="@dimen/textMarginHorizontal"
-        android:layout_marginRight="@dimen/textMarginHorizontal"
-        android:src="@mipmap/ic_launcher"/>
+        android:layout_marginRight="@dimen/textMarginHorizontal"/>
 
     <android.support.v7.widget.CardView
 

@@ -68,8 +68,14 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
         @Override
         public void onReceive(Context context, Intent intent) {
             // Get extra data included in the Intent
-            Message message = intent.getParcelableExtra("message");
-            if(message.getSender_id()!= Debug.SENDER_ID){
+            Message message = intent.getParcelableExtra(Constants.MESSAGE);
+            int channel_id = intent.getIntExtra(Constants.CHANNEL, -1);
+
+            Log.d(TAG, "received message: "+message.toString());
+            Log.d(TAG, "channel_id="+channel_id);
+            Log.d(TAG, "active_channel_id="+activeChannel.getId());
+
+            if(channel_id>-1 && channel_id==activeChannel.getId() && message.getSender_id()!= activeUser.getId()){
             Log.d("displaying type", "type="+message.getAttachment_type());
             Log.d("displaying image", "url="+message.getAttachment());
                 adapter.add(message);
@@ -105,7 +111,7 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
         layoutManager = new LinearLayoutManager(getContext());
 
-        adapter = new MessageAdapter(getContext(), recyclerView, null);
+        adapter = new MessageAdapter(getActivity(), recyclerView, null);
 
 
         recyclerView.setLayoutManager(layoutManager);
@@ -152,26 +158,26 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     public void onClick(View v) {
         String content = message.getText().toString();
         if(content.length()>0){
-            final Message m = new Message(Debug.SENDER_ID, name, avatar, content, Message.TEXT, "http://www.infotel.com/wp-content/uploads/2013/03/logo.png", true);
+            final Message m = new Message(activeUser.getId(), name, avatar, content, Message.TEXT, "http://www.infotel.com/wp-content/uploads/2013/03/logo.png", true);
             adapter.add(m);
             message.getText().clear();
             HttpRequest.messageToTopic(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-                    Toast.makeText(ChatFragment.this.getContext(), "Impossible d'envoyer le message", Toast.LENGTH_SHORT).show();
+
                 }
 
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
-                    if(response.code()==200){
-                        Toast.makeText(ChatFragment.this.getContext(), "Message reçu par le serveur", Toast.LENGTH_SHORT).show();
+                    if(response.code()==201){
+                        //Toast.makeText(ChatFragment.this.getContext(), "Message reçu par le serveur", Toast.LENGTH_SHORT).show();
                         Log.d(TAG, response.code()+"");
                     }
                     else{
                         Log.d(TAG, response.code()+"");
                     }
                 }
-            }, m, 1); // 1 est temporaire
+            }, activeChannel, m);
         }
     }
 
@@ -200,7 +206,9 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
                             Log.d(TAG, "retrieved "+length+" messages on channel "+channel.getName());
                             for (int i = 0; i < length; i++) {
                                 final JSONObject obj = channels.optJSONObject(i);
-                                final int sender_id = obj.optInt("sender_id");
+                                final int sender_id = obj.optInt("user_id");
+                                Log.d(TAG, "sender_id="+sender_id);
+                                Log.d(TAG, "active_sender_id="+activeUser.getId());
                                 getActivity().runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {

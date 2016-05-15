@@ -1,6 +1,6 @@
 package io.goodway.infotel.adapters;
 
-import android.content.Context;
+import android.app.Activity;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Gravity;
@@ -13,13 +13,21 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import io.goodway.infotel.R;
 import io.goodway.infotel.callbacks.Callback;
 import io.goodway.infotel.model.communication.Message;
+import io.goodway.infotel.sync.HttpRequest;
 import io.goodway.infotel.utils.Image;
+import okhttp3.Call;
+import okhttp3.Response;
 
 /**
  * @see android.widget.ArrayAdapter
@@ -30,16 +38,19 @@ import io.goodway.infotel.utils.Image;
 public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private List<Message> mDataset;
-    private Context context;
+    private Activity activity;
     private Callback callback;
     private RecyclerView recyclerView;
 
-    private static final String TAG="LINE_ADAPTER";
+    private HashMap<Integer, String> avatars;
+
+    private static final String TAG="MessageAdapter";
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public MessageAdapter(Context context, RecyclerView recyclerView, Callback<Message> callback) {
+    public MessageAdapter(Activity activity, RecyclerView recyclerView, Callback<Message> callback) {
         mDataset = new ArrayList<Message>();
-        this.context = context;
+        avatars = new HashMap<>();
+        this.activity = this.activity;
         this.callback = callback;
         this.recyclerView = recyclerView;
     }
@@ -72,35 +83,65 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     // Replace the contents of a view (invoked by the layout manager)
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
-        Message m = mDataset.get(position);
+        final Message m = mDataset.get(position);
         Log.d("content", m.getContent());
         int viewType = getItemViewType(position);
         Log.d("viewType", "viewType="+viewType);
         switch (viewType){
             case Message.TEXT:
-                MessageViewHolder mHolder = (MessageViewHolder)holder;
+                final MessageViewHolder mHolder = (MessageViewHolder)holder;
                 mHolder.content.setText(m.getContent());
                 if(m.from_me()){
                     mHolder.avatar.setVisibility(View.INVISIBLE);
                     mHolder.mainLayout.setGravity(Gravity.RIGHT);
                 }
-                else{
+                else {
                     mHolder.avatar.setVisibility(View.VISIBLE);
                     mHolder.mainLayout.setGravity(Gravity.LEFT);
-                    Log.d(TAG, "icon="+m.getAvatar());
+                    if(position!=0){Log.d(TAG, "previous sender id=" + mDataset.get(position - 1).getSender_id());}
+                    Log.d(TAG, "sender id=" + m.getSender_id());
 
-                    if(position!=0 && mDataset.get(position-1).getSender_id()!=m.getSender_id()){
-                        Picasso.with(context)
-                                .load(m.getAvatar())
-                                .error(R.mipmap.ic_image_black_24dp)
-                                .fit().centerCrop()
-                                .transform(new Image.ImageTransCircleTransform())
-                                .into(mHolder.avatar);
+                    if(avatars.containsKey(m.getSender_id())){
+                        if (mDataset.get(position - 1).getSender_id() != m.getSender_id() && !avatars.get(m.getSender_id()).isEmpty()) {
+                            setAvatar(mHolder.avatar, avatars.get(m.getSender_id()));
+                        }
                     }
+                    else{
+                        HttpRequest.user(new okhttp3.Callback() {
+                            @Override
+                            public void onFailure(Call call, IOException e) {
 
+                            }
+
+                            @Override
+                            public void onResponse(Call call, Response response) throws IOException {
+                                if (response.code() == 200) {
+                                    JSONObject jsonResult = null;
+                                    try {
+                                        jsonResult = new JSONObject(response.body().string());
+                                        JSONObject user = jsonResult.optJSONObject("user");
+                                        String avatar = user.optString("avatar");
+                                        Log.d(TAG, "avatar="+avatar);
+                                        avatars.put(m.getSender_id(), avatar);
+                                        if(position == 0){
+                                            if(!avatars.get(m.getSender_id()).isEmpty()) {
+                                                setAvatar(mHolder.avatar, avatars.get(m.getSender_id()));
+                                            }
+                                        }
+                                        else if (mDataset.get(position - 1).getSender_id() != m.getSender_id() && !avatar.isEmpty()) {
+                                            setAvatar(mHolder.avatar, avatars.get(m.getSender_id()));
+                                        }
+
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                        }, m.getSender_id());
+                    }
                 }
                 break;
             case Message.IMAGE:
@@ -114,15 +155,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     //Log.d("displaying image", "url="+m.getAttachment());
                     imHolder.avatar.setVisibility(View.VISIBLE);
                     imHolder.mainLayout.setGravity(Gravity.LEFT);
-                    Picasso.with(context)
-                            .load(m.getAvatar())
-                            //.error(R.mipmap)
-                            .fit().centerCrop()
-                            .transform(new Image.ImageTransCircleTransform())
-                            .into(imHolder.avatar);
+                   //setAvatar(imHolder.avatar, );
                 }
 
-                Picasso.with(context)
+                Picasso.with(activity)
                         .load(m.getAttachment())
                         .error(R.mipmap.ic_image_black_24dp)
                         .fit().centerInside()
@@ -139,6 +175,21 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
     }
 
+    public void setAvatar(final ImageView imageView, final String url){
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Picasso.with(MessageAdapter.this.activity)
+                        .load(url)
+                        //.error(R.mipmap)
+                        .fit().centerCrop()
+                        .transform(new Image.ImageTransCircleTransform())
+                        .into(imageView);
+            }
+        });
+
+    }
+
     @Override
     public int getItemViewType(int position) {
         return mDataset.get(position).getAttachment_type();
@@ -148,7 +199,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         int position = mDataset.size();
         mDataset.add(position, item);
         notifyItemInserted(position);
-        notifyItemRangeChanged(0, mDataset.size());
+        //notifyItemRangeChanged(0, mDataset.size());
         recyclerView.scrollToPosition(position);
     }
 

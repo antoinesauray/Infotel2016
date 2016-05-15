@@ -24,7 +24,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
@@ -48,11 +47,15 @@ import io.goodway.infotel.callbacks.Callback;
 import io.goodway.infotel.fragments.ChatFragment;
 import io.goodway.infotel.model.User;
 import io.goodway.infotel.model.communication.Channel;
+import io.goodway.infotel.model.communication.Message;
 import io.goodway.infotel.model.communication.Subscription;
 import io.goodway.infotel.sync.HttpRequest;
+import io.goodway.infotel.sync.gcm.GCMService;
 import io.goodway.infotel.sync.gcm.QuickstartPreferences;
 import io.goodway.infotel.sync.gcm.RegistrationIntentService;
 import io.goodway.infotel.utils.Constants;
+import io.goodway.infotel.utils.Debug;
+import io.goodway.infotel.utils.Image;
 import okhttp3.Call;
 import okhttp3.Response;
 
@@ -82,19 +85,45 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
     private RecyclerView recyclerView;
     private ChannelAdapter adapter;
     private View noChannels;
+    private View connexionFailed;
 
     private ChatFragment chatFragment;
 
     private User activeUser;
 
+
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Get extra data included in the Intent
+            Message message = intent.getParcelableExtra("message");
+            if(message.getSender_id()!= Debug.SENDER_ID){
+                Log.d("displaying type", "type="+message.getAttachment_type());
+                Log.d("displaying image", "url="+message.getAttachment());
+
+            }
+        }
+    };
+
+    @Override
+    public void onDestroy() {
+        // Unregister since the activity is about to be closed.
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+        super.onDestroy();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        setupGCM();
 
         Bundle extras = getIntent().getExtras();
         activeUser = extras.getParcelable(Constants.USER);
+
+        setupGCM();
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
+                new IntentFilter(GCMService.MESSAGE_RECEIVED));
+
         Log.d(TAG, activeUser.toString());
         ((TextView)findViewById(R.id.name)).setText(activeUser.getFirstame()+" "+activeUser.getLastname());
         ((TextView)findViewById(R.id.mail)).setText(activeUser.getMail());
@@ -104,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
                     .load(activeUser.getAvatar())
                     .error(R.mipmap.ic_person_white_36dp)
                     .fit().centerInside()
+                    .transform(new Image.ImageTransCircleTransform())
                     .into((ImageView) findViewById(R.id.avatar));
         }
 
@@ -116,6 +146,7 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         noChannels = findViewById(R.id.no_channels);
+        connexionFailed = findViewById(R.id.connexion_failed);
 
         viewPager = (ViewPager) findViewById(R.id.viewpager);
         tabLayout = (TabLayout) findViewById(R.id.tabs);
@@ -162,15 +193,28 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
 
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
+    }
 
+    @Override
+    public void onResume(){
+        super.onResume();
+        drawerToggle.syncState();
+        adapter.clear();
         HttpRequest.subscriptions(new okhttp3.Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-
+                connexionFailed.setVisibility(View.VISIBLE);
+                noChannels.setVisibility(View.GONE);
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        connexionFailed.setVisibility(View.GONE);
+                    }
+                });
                 if(response.code()==200){
                     JSONObject jsonResult = null;
                     try {
@@ -200,7 +244,12 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
                                 HttpRequest.channel(new okhttp3.Callback() {
                                     @Override
                                     public void onFailure(Call call, IOException e) {
-
+                                        MainActivity.this.runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                connexionFailed.setVisibility(View.VISIBLE);
+                                            }
+                                        });
                                     }
 
                                     @Override
@@ -221,7 +270,6 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
                                         else{
                                             Log.d(TAG, "http: error "+response.code());
                                         }
-
                                     }
                                 }, new Subscription(obj.optInt("id"), obj.optInt("channel_id"), obj.optInt("user_id")));
                             }
@@ -235,13 +283,6 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
                 }
             }
         }, activeUser);
-
-    }
-
-    @Override
-    public void onResume(){
-        super.onResume();
-        drawerToggle.syncState();
     }
 
     @Override
@@ -335,6 +376,7 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         if (checkPlayServices()) {
             // Start IntentService to register this application with GCM.
             Intent intent = new Intent(this, RegistrationIntentService.class);
+            intent.putExtra(Constants.USER, activeUser);
             startService(intent);
         }
     }
