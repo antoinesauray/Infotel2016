@@ -50,7 +50,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public MessageAdapter(Activity activity, RecyclerView recyclerView, Callback<Message> callback) {
         mDataset = new ArrayList<Message>();
         avatars = new HashMap<>();
-        this.activity = this.activity;
+        this.activity = activity;
         this.callback = callback;
         this.recyclerView = recyclerView;
     }
