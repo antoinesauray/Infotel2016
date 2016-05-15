@@ -7,7 +7,7 @@ public class Constants {
 
     public static final String CHANNEL = "channel";
     public static final String MESSAGE = "message";
-    public static final String USER = "channel";
+    public static final String USER = "user";
     public static final String EMAIL = "email";
     public static final String PASSWORD = "password";
 

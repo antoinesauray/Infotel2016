@@ -33,11 +33,6 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,7 +43,6 @@ import io.goodway.infotel.fragments.ChatFragment;
 import io.goodway.infotel.model.User;
 import io.goodway.infotel.model.communication.Channel;
 import io.goodway.infotel.model.communication.Message;
-import io.goodway.infotel.model.communication.Subscription;
 import io.goodway.infotel.sync.HttpRequest;
 import io.goodway.infotel.sync.gcm.GCMService;
 import io.goodway.infotel.sync.gcm.QuickstartPreferences;
@@ -56,8 +50,6 @@ import io.goodway.infotel.sync.gcm.RegistrationIntentService;
 import io.goodway.infotel.utils.Constants;
 import io.goodway.infotel.utils.Debug;
 import io.goodway.infotel.utils.Image;
-import okhttp3.Call;
-import okhttp3.Response;
 
 /**
  * Created by antoine on 5/11/16.
@@ -198,88 +190,28 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
     @Override
     public void onResume(){
         super.onResume();
+        Log.d(TAG, "onResume");
         drawerToggle.syncState();
         adapter.clear();
-        HttpRequest.subscriptions(new okhttp3.Callback() {
+        HttpRequest.channels(new HttpRequest.Action<Channel>() {
             @Override
-            public void onFailure(Call call, IOException e) {
-                connexionFailed.setVisibility(View.VISIBLE);
-                noChannels.setVisibility(View.GONE);
+            public void action(Channel channel) {
+                adapter.add(channel);
             }
-
+        }, new HttpRequest.FinishAction() {
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                MainActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        connexionFailed.setVisibility(View.GONE);
-                    }
-                });
-                if(response.code()==200){
-                    JSONObject jsonResult = null;
-                    try {
-                        jsonResult = new JSONObject(response.body().string());
-                        JSONArray subscriptions = jsonResult.optJSONArray("subscriptions");
-                        int length=subscriptions.length();
-                        if(length==0){
-                            Log.d(TAG, "No subscriptions");
-
-                            MainActivity.this.runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    noChannels.setVisibility(View.VISIBLE);
-                                }
-                            });
-                        }
-                        else{
-                            Log.d(TAG, "Found "+length+" subscriptions");
-                            MainActivity.this.runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    noChannels.setVisibility(View.GONE);
-                                }
-                            });
-                            for(int i=0;i<length;i++){
-                                JSONObject obj = subscriptions.getJSONObject(i);
-                                HttpRequest.channel(new okhttp3.Callback() {
-                                    @Override
-                                    public void onFailure(Call call, IOException e) {
-                                        MainActivity.this.runOnUiThread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                connexionFailed.setVisibility(View.VISIBLE);
-                                            }
-                                        });
-                                    }
-
-                                    @Override
-                                    public void onResponse(Call call, Response response) throws IOException {
-                                        if(response.code()==200) {
-                                            JSONObject jsonResult = null;
-                                            try {
-                                                jsonResult = new JSONObject(response.body().string());
-                                                JSONObject channels = jsonResult.optJSONObject("channel");
-                                                int id = channels.optInt("id");
-                                                String name = channels.optString("name");
-                                                String avatar = channels.optString("avatar");
-                                                adapter.add(new Channel(id, name, avatar));
-                                            } catch (JSONException e) {
-                                                e.printStackTrace();
-                                            }
-                                        }
-                                        else{
-                                            Log.d(TAG, "http: error "+response.code());
-                                        }
-                                    }
-                                }, new Subscription(obj.optInt("id"), obj.optInt("channel_id"), obj.optInt("user_id")));
-                            }
-                        }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
+            public void action(int length) {
+                if(length>0){
+                    noChannels.setVisibility(View.GONE);
+                    connexionFailed.setVisibility(View.GONE);
+                }
+                else if(length==0){
+                    noChannels.setVisibility(View.VISIBLE);
+                    connexionFailed.setVisibility(View.GONE);
                 }
                 else{
-                    Log.d(TAG, "http: error "+response.code());
+                    connexionFailed.setVisibility(View.VISIBLE);
+                    noChannels.setVisibility(View.GONE);
                 }
             }
         }, activeUser);

@@ -10,6 +10,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import io.goodway.infotel.R;
@@ -22,20 +25,25 @@ import io.goodway.infotel.model.communication.Channel;
  * @version 1.0
  */
 
-public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelHolder> {
+public class SendingChannelAdapter extends RecyclerView.Adapter<SendingChannelAdapter.ChannelHolder> {
 
     private List<Channel> mDataset;
     private Context context;
     private Callback callback;
-    private int selectedPos=-1; // -1 allows to not start in a chat. 0 would make the client start within first chat
+    private HashMap<Integer, Channel> selectedPositions;
 
     private static final String TAG="ChannelAdapter";
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public ChannelAdapter(Context context, Callback<Channel> callback) {
+    public SendingChannelAdapter(Context context, Callback<Channel> callback) {
         mDataset = new ArrayList<Channel>();
         this.context = context;
         this.callback = callback;
+        selectedPositions = new HashMap<Integer, Channel>();
+    }
+
+    public Collection<Channel> getSelectedChannels(){
+        return selectedPositions.values();
     }
 
     // Create new views (invoked by the layout manager)
@@ -54,15 +62,14 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelH
         Channel c = mDataset.get(position);
         holder.setItem(c);
         holder.name.setText("# "+c.getName());
-        Log.d("selectedPos", "pos="+selectedPos);
-        Log.d("position", "pos="+position);
-        if(selectedPos == position){
-            holder.itemView.setBackgroundColor(context.getResources().getColor(android.R.color.white));
-            holder.name.setTextColor(context.getResources().getColor(R.color.colorAccent));
-        }
-        else{
+        if(selectedPositions.containsKey(position)){
             holder.itemView.setBackgroundColor(context.getResources().getColor(R.color.colorPrimary));
             holder.name.setTextColor(context.getResources().getColor(android.R.color.white));
+        }
+
+        else{
+            holder.itemView.setBackgroundColor(context.getResources().getColor(android.R.color.white));
+            holder.name.setTextColor(context.getResources().getColor(android.R.color.primary_text_light));
         }
     }
 
@@ -108,11 +115,14 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelH
 
         @Override
         public void onClick(View v) {
-            notifyItemChanged(selectedPos);
-            selectedPos = getLayoutPosition();
-            notifyItemChanged(selectedPos);
-            Log.d("channel", item.getName());
-            callback.callback(item);
+            int position = getLayoutPosition();
+            if(selectedPositions.containsKey(position)){
+                selectedPositions.remove(getLayoutPosition());
+            }
+            else{
+                selectedPositions.put(position, item);
+            }
+            notifyItemChanged(position);
         }
     }
 

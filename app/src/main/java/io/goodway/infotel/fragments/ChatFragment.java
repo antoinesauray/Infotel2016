@@ -42,7 +42,7 @@ import okhttp3.Response;
 /**
  * Created by antoine on 5/11/16.
  */
-public class ChatFragment extends Fragment implements TextWatcher, View.OnClickListener {
+public class ChatFragment extends Fragment implements TextWatcher, View.OnClickListener, View.OnFocusChangeListener {
 
     private View root;
     private RecyclerView recyclerView;
@@ -100,11 +100,20 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         root = inflater.inflate(R.layout.fragment_chat, container, false);
 
-        activeUser = getArguments().getParcelable(Constants.USER);
+
+        if(savedInstanceState!=null){
+            this.activeChannel = savedInstanceState.getParcelable(Constants.CHANNEL);
+            this.activeUser = savedInstanceState.getParcelable(Constants.USER);
+        }
+        else{
+            activeUser = getArguments().getParcelable(Constants.USER);
+        }
 
         recyclerView = (RecyclerView) root.findViewById(R.id.list);
         send = (ImageButton) root.findViewById(R.id.send);
         message = (EditText) root.findViewById(R.id.message);
+
+        message.setOnFocusChangeListener(this);
 
         recyclerView.setHasFixedSize(true);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
@@ -120,6 +129,8 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
         message.addTextChangedListener(this);
         send.setOnClickListener(this);
 
+
+
         selectChannel = root.findViewById(R.id.select_channel);
 
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
@@ -127,6 +138,13 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
         //activeChannel = new Channel(1, "Général");
         return root;
+    }
+
+    @Override
+    public void onSaveInstanceState (Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelable(Constants.CHANNEL, activeChannel);
+        outState.putParcelable(Constants.USER, activeUser);
     }
 
     public void onResume(){
@@ -183,9 +201,9 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
     public void switchChannel(final Channel channel){
         if(channel!=null) {
-            activeChannel = channel;
+            this.activeChannel = channel;
             Log.d(TAG, "switching to channel " + channel.getName());
-            selectChannel.setVisibility(View.GONE);
+            if(selectChannel!=null){selectChannel.setVisibility(View.GONE);}
             message.setEnabled(true);
             send.setEnabled(true);
             adapter.clear();
@@ -232,5 +250,14 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
                 }
             }, channel);
         }
+        else{
+            Log.d(TAG, "Channel null");
+        }
+    }
+
+    @Override
+    public void onFocusChange(View v, boolean hasFocus) {
+        Log.d(TAG, "scroll");
+        recyclerView.scrollToPosition(adapter.getItemCount());
     }
 }

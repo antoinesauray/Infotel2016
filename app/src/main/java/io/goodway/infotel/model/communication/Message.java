@@ -6,12 +6,14 @@ import android.util.Log;
 
 import java.util.GregorianCalendar;
 
+import io.goodway.infotel.model.User;
+
 /**
  * Created by antoine on 5/11/16.
  */
 public class Message implements Parcelable {
 
-    public static final int TEXT =0, IMAGE=1, FILE=2, MUSIC=3, PDF=4;
+    public static final int TEXT =0, IMAGE=1, FILE=2, MUSIC=3, PDF=4, VIDEO=5;
 
     public int getSender_id() {
         return sender_id;
@@ -61,6 +63,16 @@ public class Message implements Parcelable {
         this.sender_id=sender_id;
         this.name=name;
         this.avatar=avatar;
+        this.content = content;
+        this.attachment_url =attachment_url;
+        this.attachment_type = attachment_type;
+        this.from_me = from_me;
+    }
+
+    public Message(User user,String content, int attachment_type, String attachment_url, boolean from_me){
+        this.sender_id=user.getId();
+        this.name=user.getFirstame();
+        this.avatar=user.getAvatar();
         this.content = content;
         this.attachment_url =attachment_url;
         this.attachment_type = attachment_type;

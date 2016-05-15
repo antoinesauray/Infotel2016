@@ -1,8 +1,8 @@
 package io.goodway.infotel.sync;
 
 
+import android.os.AsyncTask;
 import android.util.Log;
-import android.view.View;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -90,7 +90,59 @@ public class HttpRequest {
         call.enqueue(callback);
     }
 
-    public static void channels(final Callback callback, User activeUser){
+    public static void channels(final Action<Channel> action, final FinishAction finishAction, User activeUser){
+
+        new AsyncTask<User, Channel, Integer>() {
+            @Override
+            protected Integer doInBackground(User... params) {
+                OkHttpClient client = new OkHttpClient();
+                int length=0;
+                Request request = new Request.Builder()
+                        .url("http://infotel.goodway.io/api/users/"+params[0].getId()+"/channels")
+                        .build();
+                Call call = client.newCall(request);
+                try {
+                    Response response = call.execute();
+                    if(response.code()==200){
+                        JSONObject jsonResult = null;
+                        try {
+                            jsonResult = new JSONObject(response.body().string());
+                            JSONArray subscriptions = jsonResult.optJSONArray("subscriptions");
+                            length=subscriptions.length();
+                            for(int i=0;i<length;i++){
+                                JSONObject obj = subscriptions.getJSONObject(i);
+                                Request request2 = new Request.Builder().url("http://infotel.goodway.io/api/channels/"+obj.optInt("channel_id")).build();
+                                Call call2 = client.newCall(request2);
+                                Response response2 = call2.execute();
+                                JSONObject obj2 = new JSONObject(response2.body().string());
+                                Log.d(TAG, obj2.toString());
+                                JSONObject channel = obj2.getJSONObject("channel");
+                                publishProgress(new Channel(channel.optInt("id"), channel.optString("name"), channel.optString("avatar")));
+
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    else{
+                        Log.d(TAG, "http: error "+response.code());
+                    }
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+                return length;
+            }
+            @Override
+            protected void onProgressUpdate(Channel...progress){
+                action.action(progress[0]);
+            }
+            protected void onPostExecute(Integer length){
+                finishAction.action(length);
+            }
+        }.execute(activeUser);
+    }
+
+    public static void channelsOnThread(final Callback callback, User activeUser){
         HttpRequest.subscriptions(new okhttp3.Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -158,6 +210,14 @@ public class HttpRequest {
                 .build();
         Call call = client.newCall(request);
         call.enqueue(callback);
+    }
+
+    public interface Action<T>{
+        public void action(T t);
+    }
+
+    public interface FinishAction {
+        public void action(int length);
     }
 
 }

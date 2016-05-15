@@ -10,6 +10,13 @@
         android:padding="@dimen/textMarginHorizontal"
         android:orientation="vertical"
         android:id="@+id/userInput">
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+        </android.support.v7.widget.RecyclerView>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -44,13 +51,6 @@
 
         </LinearLayout>
     </LinearLayout>
-
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/list"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_above="@id/userInput">
-    </android.support.v7.widget.RecyclerView>
 
     <LinearLayout
         android:id="@+id/select_channel"

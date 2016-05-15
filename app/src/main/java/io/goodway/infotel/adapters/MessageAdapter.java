@@ -105,7 +105,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     Log.d(TAG, "sender id=" + m.getSender_id());
 
                     if(avatars.containsKey(m.getSender_id())){
-                        if (mDataset.get(position - 1).getSender_id() != m.getSender_id() && !avatars.get(m.getSender_id()).isEmpty()) {
+                        if(position==0){
+                            setAvatar(mHolder.avatar, avatars.get(m.getSender_id()));
+                        }
+                        else if (mDataset.get(position - 1).getSender_id() != m.getSender_id() && !avatars.get(m.getSender_id()).isEmpty()) {
                             setAvatar(mHolder.avatar, avatars.get(m.getSender_id()));
                         }
                     }

@@ -153,11 +153,14 @@ public class ChannelsActivity extends AppCompatActivity implements Callback<Chan
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                if(response.code()==200){
+                if(response.code()==201){
                     finish();
+                    //Intent i = new Intent(ChannelsActivity.this, MainActivity.class);
+                    //i.putExtra(Constants.USER, activeUser);
+                    //startActivity(i);
                 }
                 else{
-                    Log.d(TAG, "prout "+response.code());
+                    Log.d(TAG, "error "+response.code());
                 }
             }
         }, activeUser, channel);

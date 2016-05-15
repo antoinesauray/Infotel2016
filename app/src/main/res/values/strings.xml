@@ -20,4 +20,7 @@
     <string name="add_channel">Ajouter un channel</string>
     <string name="connection_failed">La connexion a échoué</string>
     <string name="retry">Réessayer</string>
+    <string name="addComment">Ajoutez un commentaire</string>
+    <string name="auth_failure">Echec de l\'authentification</string>
+    <string name="not_authenticated">Vous n\'êtes pas encore authentifié</string>
 </resources>

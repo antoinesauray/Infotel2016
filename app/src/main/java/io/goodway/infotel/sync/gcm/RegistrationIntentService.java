@@ -112,7 +112,7 @@ public class RegistrationIntentService extends IntentService {
     // [END subscribe_topics]
 
     private void subscribeTopics(final GcmPubSub pubSub, final String token, User activeUser) {
-        HttpRequest.channels(new Callback() {
+        HttpRequest.channelsOnThread(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
 
