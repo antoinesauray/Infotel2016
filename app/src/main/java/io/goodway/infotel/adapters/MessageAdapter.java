@@ -25,6 +25,11 @@ import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.VideoView;
 
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.youtube.player.YouTubeInitializationResult;
 import com.google.android.youtube.player.YouTubePlayer;
 import com.google.android.youtube.player.YouTubePlayerFragment;
@@ -32,6 +37,7 @@ import com.google.android.youtube.player.YouTubePlayerSupportFragment;
 import com.google.android.youtube.player.YouTubePlayerView;
 import com.squareup.picasso.Picasso;
 
+import org.joda.time.format.ISODateTimeFormat;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -43,8 +49,11 @@ import java.util.HashMap;
 import java.util.List;
 
 import io.goodway.infotel.R;
+import io.goodway.infotel.activities.EventActivity;
 import io.goodway.infotel.activities.PdfActivity;
 import io.goodway.infotel.callbacks.Callback;
+import io.goodway.infotel.model.Event;
+import io.goodway.infotel.model.User;
 import io.goodway.infotel.model.communication.Message;
 import io.goodway.infotel.sync.HttpRequest;
 import io.goodway.infotel.utils.Constants;
@@ -63,6 +72,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     private ArrayList<Message> mDataset;
     private Activity activity;
+    private User activeUser;
     private Callback callback;
     private RecyclerView recyclerView;
     private LinearLayoutManager layoutManager;
@@ -72,7 +82,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private static final String TAG = "MessageAdapter";
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public MessageAdapter(Activity activity, RecyclerView recyclerView, LinearLayoutManager layoutManager, Callback<Message> callback) {
+    public MessageAdapter(Activity activity, User activeUser, RecyclerView recyclerView, LinearLayoutManager layoutManager, Callback<Message> callback) {
         mDataset = new ArrayList<Message>(){
             public boolean add(Message mt) {
                 super.add(mt);
@@ -83,6 +93,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         this.layoutManager = layoutManager;
         avatars = new HashMap<>();
         this.activity = activity;
+        this.activeUser = activeUser;
         this.callback = callback;
         this.recyclerView = recyclerView;
     }
@@ -100,6 +111,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             case Message.IMAGE:
                 v = LayoutInflater.from(parent.getContext()).inflate(R.layout.view_message_image, parent, false);
                 return new ImageMessageViewHolder((LinearLayout) v);
+            case Message.EVENT:
+                v = LayoutInflater.from(parent.getContext()).inflate(R.layout.view_message_event, parent, false);
+                return new GroupMessageViewHolder((LinearLayout) v);
             case Message.MUSIC:
                 v = LayoutInflater.from(parent.getContext()).inflate(R.layout.view_message, parent, false);
                 break;
@@ -162,7 +176,80 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                         .into(imHolder.attachment);
 
                 break;
-            case Message.MUSIC:
+            case Message.EVENT:
+                final GroupMessageViewHolder emHolder = (GroupMessageViewHolder) holder;
+                emHolder.setItem(m);
+                if (m.from_me()) {
+                    emHolder.avatar.setVisibility(View.INVISIBLE);
+                    emHolder.mainLayout.setGravity(Gravity.RIGHT);
+                } else {
+                    //Log.d("displaying image", "url="+m.getAttachment());
+                    emHolder.avatar.setVisibility(View.VISIBLE);
+                    emHolder.mainLayout.setGravity(Gravity.LEFT);
+                    findAndSetAvatar(position, m, emHolder);
+                }
+                HttpRequest.event(new okhttp3.Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+
+                    }
+
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        if (response.code() == 200) {
+                            Log.d(TAG, "group_type="+m.getAttachment());
+                            try {
+                                final JSONObject event = new JSONObject(response.body().string()).optJSONObject("event");
+                                if (event != null) {
+                                    Log.d(TAG, event.toString());
+                                    activity.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            Log.d(TAG, "group_name" + event.optString("name"));
+                                            emHolder.name.setText(event.optString("name"));
+                                            if (!event.optString("date_start").equals("null")) {
+                                                emHolder.date.setText(ISODateTimeFormat.dateTime().parseDateTime(event.optString("date_start")).toLocalDate().toString());
+                                            }
+
+                                            if (!event.optString("avatar").equals("null")) {
+                                                emHolder.eventImage.setVisibility(View.VISIBLE);
+                                                Picasso.with(MessageAdapter.this.activity)
+                                                        .load(event.optString("avatar"))
+                                                        //.error(R.mipmap)
+                                                        .fit().centerInside()
+                                                        .transform(new Image.ImageTransCircleTransform())
+                                                        .into(emHolder.eventImage);
+                                            }
+                                            int type = event.optInt("type");
+                                            switch (type) {
+                                                case Event.CARPOOLING:
+                                                    emHolder.icon.setImageResource(R.mipmap.ic_directions_car_white_24dp);
+                                                    break;
+                                                case Event.RUNNING:
+                                                    emHolder.icon.setImageResource(R.mipmap.ic_directions_run_white_24dp);
+                                                    break;
+                                                case Event.AFTERWORK:
+                                                    emHolder.icon.setImageResource(R.mipmap.ic_local_cafe_white_24dp);
+                                                    break;
+                                                default:
+                                                    emHolder.icon.setImageResource(R.mipmap.ic_local_cafe_white_24dp);
+                                                    break;
+                                            }
+                                        }
+                                    });
+
+
+                                }
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        else{
+                            Log.d(TAG, "error: "+response.code());
+                        }
+                    }
+                } , m.getAttachment());
+
                 break;
             case Message.PDF:
                 final PdfMessageViewHolder pdfHolder = (PdfMessageViewHolder) holder;
@@ -402,6 +489,38 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             activity.startActivity(i);
         }
     }
+
+    public class GroupMessageViewHolder extends AvatarViewHolder implements View.OnClickListener {
+        // each data item is just a string in this case
+        //TextView s_name, a_name;
+        Message item;
+        LinearLayout mainLayout;
+        TextView name, date;
+        ImageView icon, eventImage;
+
+        public GroupMessageViewHolder(LinearLayout mainLayout) {
+            super(mainLayout);
+            this.mainLayout = mainLayout;
+            mainLayout.setOnClickListener(this);
+            name = (TextView) mainLayout.findViewById(R.id.name);
+            date = (TextView) mainLayout.findViewById(R.id.date);
+            icon = (ImageView) mainLayout.findViewById(R.id.icon);
+            eventImage = (ImageView) mainLayout.findViewById(R.id.eventImage);
+        }
+
+        public void setItem(Message item) {
+            this.item = item;
+        }
+
+        @Override
+        public void onClick(View v) {
+            Intent i = new Intent(activity, EventActivity.class);
+            i.putExtra(Constants.MESSAGE, item);
+            i.putExtra(Constants.USER, activeUser);
+            activity.startActivity(i);
+        }
+    }
+
 
     public class FileMessageViewHolder extends AvatarViewHolder implements View.OnClickListener {
         // each data item is just a string in this case

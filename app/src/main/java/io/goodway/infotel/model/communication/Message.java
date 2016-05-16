@@ -15,7 +15,7 @@ import io.goodway.infotel.model.User;
  */
 public class Message implements Parcelable, Comparable<Message> {
 
-    public static final int TEXT =0, IMAGE=1, FILE=2, MUSIC=3, PDF=4, VIDEO=5, YOUTUBE=6;
+    public static final int TEXT =0, IMAGE=1, FILE=2, MUSIC=3, PDF=4, VIDEO=5, YOUTUBE=6, EVENT=7;
 
     public int getSender_id() {
         return sender_id;

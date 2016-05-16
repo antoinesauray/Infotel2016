@@ -8,6 +8,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 
 import io.goodway.infotel.model.Event;
@@ -18,6 +19,8 @@ import io.goodway.infotel.model.communication.Subscription;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -91,6 +94,15 @@ public class HttpRequest {
         call.enqueue(callback);
     }
 
+    public static void event(final Callback callback, String id){
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url("http://infotel.goodway.io/api/events/"+id)
+                .build();
+        Call call = client.newCall(request);
+        call.enqueue(callback);
+    }
+
     public static void events(final Callback callback){
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
@@ -100,22 +112,76 @@ public class HttpRequest {
         call.enqueue(callback);
     }
 
-    public static void createEvent(final Callback callback, User activeUser, Event event){
+    public static void inscriptions(final Callback callback, Event e){
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url("http://infotel.goodway.io/api/events/"+e.getId()+"/inscriptions")
+                .build();
+        Call call = client.newCall(request);
+        call.enqueue(callback);
+    }
+
+    public static void registerToEvent(final Callback callback, User activeUser, Event e){
         OkHttpClient client = new OkHttpClient();
         RequestBody formBody = new FormBody.Builder()
-                .add("name", event.getName())
-                .add("avatar", event.getAvatar())
-                .add("date_start", event.getDate_start().toString())
-                .add("date_end", event.getDate_end().toString())
-                .add("place_lat_start", String.valueOf(event.getPlace_lat_start()))
-                .add("place_lng_start", String.valueOf(event.getPlace_lon_start()))
-                .add("place_lat_end", String.valueOf(event.getPlace_lat_end()))
-                .add("place_lng_end", String.valueOf(event.getPlace_lon_end()))
-                .add("creator_id", String.valueOf(activeUser.getId()))
-        .build();
+                .add("user_id", String.valueOf(activeUser.getId()))
+                .add("event_id", String.valueOf(e.getId()))
+                .build();
 
         Request request = new Request.Builder()
-                .url("http://infotel.goodway.io/api/auth")
+                .url("http://infotel.goodway.io/api/inscriptions/add")
+                .post(formBody)
+                .build();
+        Call call = client.newCall(request);
+        call.enqueue(callback);
+    }
+
+    public static void unRegisterToEvent(final Callback callback, User activeUser, Event e){
+        OkHttpClient client = new OkHttpClient();
+        RequestBody formBody = new FormBody.Builder()
+                .add("event_id", String.valueOf(e.getId()))
+                .build();
+
+        Request request = new Request.Builder()
+                .url("http://infotel.goodway.io/api/users/"+activeUser.getId()+"/inscriptions/")
+                .delete(formBody)
+                .build();
+        Call call = client.newCall(request);
+        call.enqueue(callback);
+    }
+
+    public static void inscriptions(final Callback callback, User user){
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url("http://infotel.goodway.io/api/users/"+user.getId()+"/inscriptions")
+                .build();
+        Call call = client.newCall(request);
+        call.enqueue(callback);
+    }
+
+    public static void createEvent(final Callback callback, User activeUser, Event event){
+        OkHttpClient client = new OkHttpClient();
+        FormBody.Builder b = new FormBody.Builder();
+        b.add("name", event.getName());
+        b.add("type", String.valueOf(event.getType()));
+        if(event.getAvatar()!=null){b.add("avatar", event.getAvatar());}
+        b.add("date_start", event.getDate_start().toDateTimeISO().toString());
+        Log.d(TAG, event.getDate_start().toString());
+        if(event.getDate_end()!=null){b.add("date_end", event.getDate_end().toString());}
+        b.add("place_lat_start", String.valueOf(event.getPlace_lat_start()));
+        b.add("place_lon_start", String.valueOf(event.getPlace_lon_start()));
+
+        if(event.getPlace_lat_end()!=0){b.add("place_lat_end", String.valueOf(event.getPlace_lat_end()));}
+        if(event.getPlace_lon_end()!=0){b.add("place_lon_end", String.valueOf(event.getPlace_lon_end()));}
+
+        Log.d(TAG, String.valueOf(activeUser.getId()));
+        b.add("creator_id", String.valueOf(activeUser.getId()));
+        RequestBody formBody = b.build();
+
+        Log.d(TAG, "creator_id="+String.valueOf(activeUser.getId()));
+
+        Request request = new Request.Builder()
+                .url("http://infotel.goodway.io/api/events/add")
                 .post(formBody)
                 .build();
         Call call = client.newCall(request);
@@ -243,6 +309,27 @@ public class HttpRequest {
         Call call = client.newCall(request);
         call.enqueue(callback);
     }
+
+    public static void upload(final Callback callback, File f, MediaType type){
+        // Use the imgur image upload API as documented at https://api.imgur.com/endpoints/image
+        OkHttpClient client = new OkHttpClient();
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                //.addFormDataPart("file", f.getName())
+                .addFormDataPart("file", f.getName(), RequestBody.create(type, f))
+                .build();
+
+        Request request = new Request.Builder()
+                .url("http://infotel.goodway.io/api/uploads")
+                .post(requestBody)
+                .build();
+
+        Call call = client.newCall(request);
+        call.enqueue(callback);
+    }
+
+
+    public static final MediaType MEDIA_TYPE_PNG = MediaType.parse("image/png");
 
     public interface Action<T>{
         public void action(T t);

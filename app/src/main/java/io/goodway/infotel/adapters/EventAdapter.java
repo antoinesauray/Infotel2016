@@ -24,7 +24,7 @@ import io.goodway.infotel.model.communication.Channel;
  * @version 1.0
  */
 
-public class EventAdapter extends RecyclerView.Adapter<EventAdapter.ChannelHolder> {
+public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventHolder> {
 
     private List<Event> mDataset;
     private Context context;
@@ -34,7 +34,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.ChannelHolde
     private static final String TAG="LINE_ADAPTER";
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public EventAdapter(Context context, Callback<Channel> callback) {
+    public EventAdapter(Context context, Callback<Event> callback) {
         mDataset = new ArrayList<Event>();
         this.context = context;
         this.callback = callback;
@@ -42,21 +42,35 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.ChannelHolde
 
     // Create new views (invoked by the layout manager)
     @Override
-    public ChannelHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public EventHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // create a new view
-        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.view_channel, parent, false);
-        return new ChannelHolder(v);
+        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.view_event, parent, false);
+        return new EventHolder(v);
     }
 
     // Replace the contents of a view (invoked by the layout manager)
     @Override
-    public void onBindViewHolder(ChannelHolder holder, int position) {
+    public void onBindViewHolder(EventHolder holder, int position) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
         Event c = mDataset.get(position);
         holder.setItem(c);
-        holder.itemView.setBackgroundColor(context.getResources().getColor(android.R.color.white));
-        holder.name.setTextColor(context.getResources().getColor(R.color.colorAccent));
+        holder.name.setText(c.getName());
+        holder.date.setText(c.getDate_start().toString());
+        switch (c.getType()){
+            case Event.CARPOOLING:
+                holder.icon.setImageResource(R.mipmap.ic_directions_car_white_24dp);
+                break;
+            case Event.RUNNING:
+                holder.icon.setImageResource(R.mipmap.ic_directions_run_white_24dp);
+                break;
+            case Event.AFTERWORK:
+                holder.icon.setImageResource(R.mipmap.ic_local_cafe_white_24dp);
+                break;
+            default:
+                holder.icon.setImageResource(R.mipmap.ic_local_cafe_white_24dp);
+                break;
+        }
     }
 
 
@@ -79,19 +93,20 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.ChannelHolde
         return mDataset.size();
     }
 
-    public class ChannelHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+    public class EventHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         // each data item is just a string in this case
         //TextView s_name, a_name;
         Event item;
-        TextView name;
+        TextView name, date;
         ImageView icon;
         View root;
 
-        public ChannelHolder(View root) {
+        public EventHolder(View root) {
             super(root);
             this.root=root;
             root.setOnClickListener(this);
             name = (TextView) root.findViewById(R.id.name);
+            date = (TextView) root.findViewById(R.id.date);
             icon = (ImageView) root.findViewById(R.id.icon);
         }
 

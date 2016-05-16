@@ -9,6 +9,7 @@ import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 
 import io.goodway.infotel.R;
 import io.goodway.infotel.adapters.MessageAdapter;
+import io.goodway.infotel.model.Event;
 import io.goodway.infotel.model.User;
 import io.goodway.infotel.model.communication.Channel;
 import io.goodway.infotel.model.communication.Message;
@@ -124,7 +126,7 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
         layoutManager = new LinearLayoutManager(getContext());
         layoutManager.setStackFromEnd(true);
-        adapter = new MessageAdapter(getActivity(), recyclerView, layoutManager, null);
+        adapter = new MessageAdapter(getActivity(), activeUser, recyclerView, layoutManager, null);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
         message.addTextChangedListener(this);
@@ -150,6 +152,9 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
             message.setEnabled(false);
             send.setEnabled(false);
             attach.setEnabled(false);
+            message.setAlpha(0.2f);
+            send.setAlpha(0.2f);
+            attach.setAlpha(0.2f);
         }
 
         //activeChannel = new Channel(1, "Général");
@@ -165,6 +170,7 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
     public void onResume(){
         super.onResume();
+        bottomSheet.dismissSheet();
     }
 
     @Override
@@ -176,9 +182,11 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     public void onTextChanged(CharSequence s, int start, int before, int count) {
         if(s.length()>0 && !send.isEnabled()){
             send.setEnabled(true);
+            send.setAlpha(1f);
         }
         else if(s.length()==0 && send.isEnabled()){
             send.setEnabled(false);
+            send.setAlpha(0.2f);
         }
     }
 
@@ -192,27 +200,9 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
         switch(v.getId()){
             case R.id.send:
                 String content = message.getText().toString();
-                if(content.length()>0){
+                if(content.length()>0) {
                     final Message m = new Message(activeUser.getId(), name, avatar, content, Message.TEXT, "http://www.infotel.com/wp-content/uploads/2013/03/logo.png", true);
-                    adapter.add(m);
-                    message.getText().clear();
-                    HttpRequest.messageToTopic(new Callback() {
-                        @Override
-                        public void onFailure(Call call, IOException e) {
-
-                        }
-
-                        @Override
-                        public void onResponse(Call call, Response response) throws IOException {
-                            if(response.code()==201){
-                                //Toast.makeText(ChatFragment.this.getContext(), "Message reçu par le serveur", Toast.LENGTH_SHORT).show();
-                                Log.d(TAG, response.code()+"");
-                            }
-                            else{
-                                Log.d(TAG, response.code()+"");
-                            }
-                        }
-                    }, activeChannel, m);
+                    sendMessage(m);
                 }
                 break;
             case R.id.attach:
@@ -222,9 +212,33 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
     }
 
+    private void sendMessage(final Message m){
+            adapter.add(m);
+            message.getText().clear();
+            HttpRequest.messageToTopic(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    if(response.code()==201){
+                        //Toast.makeText(ChatFragment.this.getContext(), "Message reçu par le serveur", Toast.LENGTH_SHORT).show();
+                        Log.d(TAG, response.code()+"");
+                    }
+                    else{
+                        Log.d(TAG, response.code()+"");
+                    }
+                }
+            }, activeChannel, m);
+    }
+
+
     public void switchChannel(final Channel channel){
         if(channel!=null) {
             this.activeChannel = channel;
+            ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle("#"+activeChannel.getFullName());
             Log.d(TAG, "switching to channel " + channel.getName());
             if(selectChannel!=null){
                 selectChannel.setVisibility(View.GONE);
@@ -241,6 +255,9 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
                             message.setEnabled(false);
                             send.setEnabled(false);
                             attach.setEnabled(false);
+                            message.setAlpha(0.2f);
+                            send.setAlpha(0.2f);
+                            attach.setAlpha(0.2f);
                         }
                     });
                 }
@@ -279,7 +296,8 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
                                     recyclerView.scrollToPosition(messages.size());
                                     attach.setEnabled(true);
                                     message.setEnabled(true);
-                                    send.setEnabled(true);
+                                    message.setAlpha(1f);
+                                    attach.setAlpha(1f);
                                 }
                             });
                         } catch (JSONException e) {
@@ -294,6 +312,9 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
             attach.setEnabled(false);
             send.setEnabled(false);
             message.setEnabled(false);
+            message.setAlpha(0.2f);
+            send.setAlpha(0.2f);
+            attach.setAlpha(0.2f);
         }
     }
 
@@ -301,5 +322,10 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     public void onFocusChange(View v, boolean hasFocus) {
         Log.d(TAG, "scroll");
         recyclerView.scrollToPosition(adapter.getItemCount());
+    }
+
+    public void postEventToCurrentChannel(Event e){
+        Log.d(TAG, "posting event message");
+        sendMessage(new Message(activeUser, "Linked Event", Message.EVENT, String.valueOf(e.getId()), true));
     }
 }

@@ -1,11 +1,13 @@
 package io.goodway.infotel.activities;
 
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.NavigationView;
@@ -31,11 +33,15 @@ import android.view.SearchEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,6 +49,7 @@ import io.goodway.infotel.R;
 import io.goodway.infotel.adapters.ChannelAdapter;
 import io.goodway.infotel.callbacks.Callback;
 import io.goodway.infotel.fragments.ChatFragment;
+import io.goodway.infotel.model.Event;
 import io.goodway.infotel.model.User;
 import io.goodway.infotel.model.communication.Channel;
 import io.goodway.infotel.model.communication.Message;
@@ -53,6 +60,9 @@ import io.goodway.infotel.sync.gcm.RegistrationIntentService;
 import io.goodway.infotel.utils.Constants;
 import io.goodway.infotel.utils.Debug;
 import io.goodway.infotel.utils.Image;
+import okhttp3.Call;
+import okhttp3.MediaType;
+import okhttp3.Response;
 
 /**
  * Created by antoine on 5/11/16.
@@ -356,7 +366,7 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         Intent i = new Intent(this, EventsActivity.class);
         i.putExtra(Constants.USER, activeUser);
         i.putExtra(Constants.CHANNEL, activeChannel);
-        startActivityForResult(i, Constants.CREATE_EVENT_REQUEST);
+        startActivityForResult(i, Constants.SEARCH_EVENT_REQUEST);
 
     }
 
@@ -364,6 +374,76 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         Intent i = new Intent(this, CreateEventActivity.class);
         i.putExtra(Constants.USER, activeUser);
         i.putExtra(Constants.CHANNEL, activeChannel);
-        startActivityForResult(i, Constants.SEARCH_EVENT_REQUEST);
+        startActivityForResult(i, Constants.CREATE_EVENT_REQUEST);
+    }
+
+    public void uploadImage(View v){
+        Intent galleryIntent = new Intent(
+                Intent.ACTION_PICK,
+                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(galleryIntent , Constants.LOAD_IMAGE_REQUEST );
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Check which request we're responding to
+        Log.d(TAG, "onActivityResult");
+        if (requestCode == Constants.SEARCH_EVENT_REQUEST) {
+            // Make sure the request was successful
+            Log.d(TAG, "SEARCH_EVENT_REQUEST");
+            if (resultCode == RESULT_OK) {
+                Log.d(TAG, "RESULT_OK");
+                Event e = data.getParcelableExtra(Constants.EVENT);
+                chatFragment.postEventToCurrentChannel(e);
+            }
+        } else if (requestCode == Constants.CREATE_EVENT_REQUEST) {
+            if (resultCode == RESULT_OK) {
+                Log.d(TAG, "RESULT_OK");
+                Event e = data.getParcelableExtra(Constants.EVENT);
+                chatFragment.postEventToCurrentChannel(e);
+            }
+        } else if (requestCode == Constants.LOAD_IMAGE_REQUEST) {
+            Log.d(TAG, "LOAD_IMAGE_REQUEST");
+            if (resultCode == RESULT_OK && data != null) {
+                Uri imageUri = data.getData();
+                final ProgressDialog pd = new ProgressDialog(this);
+                pd.setTitle("Envoi du fichier image");
+                pd.setIndeterminate(true);
+                pd.show();
+                HttpRequest.upload(new okhttp3.Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        Log.d(TAG, "failure");
+                        Log.d(TAG, e.toString());
+                        e.printStackTrace();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                pd.hide();
+                                Toast.makeText(MainActivity.this, "echec de l'envoi du fichier", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onResponse(Call call, final Response response) throws IOException {
+                        Log.d(TAG, response.body().string());
+                        Log.d(TAG, response.code()+"");
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                pd.hide();
+                                if(response.code()!=200){
+                                    Toast.makeText(MainActivity.this, "echec de l'envoi du fichier", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+                    }
+                }, new File(io.goodway.infotel.utils.File.getPath(this, imageUri)), MediaType.parse(io.goodway.infotel.utils.File.getMimeType(this, imageUri)));
+            }
+            else{
+                Log.d(TAG, "Data null");
+            }
+        }
     }
 }
