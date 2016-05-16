@@ -17,6 +17,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -60,12 +61,13 @@ import okhttp3.Response;
 /**
  * Created by antoine on 5/11/16.
  */
-public class ChannelsActivity extends AppCompatActivity implements Callback<Channel> {
+public class ChannelsActivity extends AppCompatActivity implements Callback<Channel>, SwipeRefreshLayout.OnRefreshListener {
 
     // GCM SERVICE
     // Allow communication with server to display notifications to device
     private static final String TAG = "MainActivity";
     private RecyclerView recyclerView;
+    private SwipeRefreshLayout swipeRefreshLayout;
     private DiscoveredChannelAdapter adapter;
 
     private User activeUser;
@@ -81,13 +83,15 @@ public class ChannelsActivity extends AppCompatActivity implements Callback<Chan
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle("test");
+        getSupportActionBar().setTitle(R.string.channels);
 
 
         recyclerView = (RecyclerView) findViewById(R.id.channels);
         recyclerView.setHasFixedSize(true);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
 
+        swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipeRefreshLayout);
+        swipeRefreshLayout.setOnRefreshListener(this);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
 
         adapter = new DiscoveredChannelAdapter(this, this);
@@ -121,7 +125,7 @@ public class ChannelsActivity extends AppCompatActivity implements Callback<Chan
                             for(int i=0;i<length;i++){
                                 JSONObject obj = channels.getJSONObject(i);
                                 Log.d(TAG, obj.optString("name"));
-                                adapter.add(new Channel(obj.optInt("id"), obj.optString("name"), obj.optString("avatar")));
+                                adapter.add(new Channel(obj.optInt("id"), obj.optString("name"), obj.optString("full_name"), obj.optString("avatar")));
                             }
                         }
                     } catch (JSONException e) {
@@ -164,5 +168,10 @@ public class ChannelsActivity extends AppCompatActivity implements Callback<Chan
                 }
             }
         }, activeUser, channel);
+    }
+
+    @Override
+    public void onRefresh() {
+        onResume();
     }
 }

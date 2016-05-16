@@ -13,10 +13,12 @@ import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -25,6 +27,7 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.SearchEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -54,7 +57,7 @@ import io.goodway.infotel.utils.Image;
 /**
  * Created by antoine on 5/11/16.
  */
-public class MainActivity extends AppCompatActivity implements Callback<Channel> {
+public class MainActivity extends AppCompatActivity implements Callback<Channel>, SwipeRefreshLayout.OnRefreshListener {
 
     // GCM SERVICE
     // Allow communication with server to display notifications to device
@@ -63,18 +66,14 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
     private BroadcastReceiver mRegistrationBroadcastReceiver;
     private boolean isReceiverRegistered;
 
-    //
-    private String[] titles;
-
-    private ViewPager viewPager;
-    private TabLayout tabLayout;
 
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle drawerToggle;
     private NavigationView navigationView;
-    private MenuItem currentItemSelected;
+    private Toolbar toolbar;
 
     private RecyclerView recyclerView;
+    private SwipeRefreshLayout swipeRefreshLayout;
     private ChannelAdapter adapter;
     private View noChannels;
     private View connexionFailed;
@@ -82,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
     private ChatFragment chatFragment;
 
     private User activeUser;
+    private Channel activeChannel;
 
 
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
@@ -89,10 +89,13 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         public void onReceive(Context context, Intent intent) {
             // Get extra data included in the Intent
             Message message = intent.getParcelableExtra("message");
+            int channel_id = intent.getIntExtra(Constants.CHANNEL, -1);
             if(message.getSender_id()!= Debug.SENDER_ID){
                 Log.d("displaying type", "type="+message.getAttachment_type());
                 Log.d("displaying image", "url="+message.getAttachment());
-
+            }
+            if(activeChannel==null || (channel_id!=-1 && activeChannel.getId()!=channel_id)){
+                adapter.incrementChannelPendingMessages(channel_id);
             }
         }
     };
@@ -133,24 +136,22 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
             Log.d(TAG, getIntent().getExtras().toString());
         }
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        setTitle(R.string.app_name);
+
 
         noChannels = findViewById(R.id.no_channels);
         connexionFailed = findViewById(R.id.connexion_failed);
 
-        viewPager = (ViewPager) findViewById(R.id.viewpager);
-        tabLayout = (TabLayout) findViewById(R.id.tabs);
+        chatFragment = ChatFragment.newInstance(getIntent().getExtras());
+        chatFragment.setArguments(getIntent().getExtras());
 
-        titles = new String[]{"Accueil",
-                //"Notifications",
-                "Profil"};
-        setupViewPager(viewPager);
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.chatFragment, chatFragment);
+        ft.commit();
 
-        tabLayout.setupWithViewPager(viewPager);
-
-        tabLayout.getTabAt(0).setIcon(R.mipmap.ic_launcher);
         //tabLayout.getTabAt(1).setIcon(R.drawable.ic_public_white_48dp);
         //tabLayout.getTabAt(1).setIcon(R.mipmap.ic_launcher);
 
@@ -177,6 +178,8 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         recyclerView = (RecyclerView) findViewById(R.id.channels);
         recyclerView.setHasFixedSize(true);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
+        swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipeRefreshLayout);
+        swipeRefreshLayout.setOnRefreshListener(this);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
 
@@ -193,6 +196,7 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         Log.d(TAG, "onResume");
         drawerToggle.syncState();
         adapter.clear();
+        swipeRefreshLayout.setRefreshing(true);
         HttpRequest.channels(new HttpRequest.Action<Channel>() {
             @Override
             public void action(Channel channel) {
@@ -201,6 +205,7 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         }, new HttpRequest.FinishAction() {
             @Override
             public void action(int length) {
+                swipeRefreshLayout.setRefreshing(false);
                 if(length>0){
                     noChannels.setVisibility(View.GONE);
                     connexionFailed.setVisibility(View.GONE);
@@ -239,20 +244,17 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         return super.onOptionsItemSelected(item);
     }
 
-    private void setupViewPager(ViewPager viewPager) {
-        ViewPagerAdapter adapter = new ViewPagerAdapter(getSupportFragmentManager());
-        chatFragment = ChatFragment.newInstance(getIntent().getExtras());
-
-        adapter.addFragment(chatFragment);
-        //adapter.addFragment(chatFragment);
-
-        viewPager.setAdapter(adapter);
+    @Override
+    public void callback(Channel channel) {
+        this.activeChannel = channel;
+        setTitle("#"+activeChannel.getName());
+        drawerLayout.closeDrawers();  // CLOSE DRAWER
+        chatFragment.switchChannel(channel);
     }
 
     @Override
-    public void callback(Channel channel) {
-        drawerLayout.closeDrawers();  // CLOSE DRAWER
-        chatFragment.switchChannel(channel);
+    public void onRefresh() {
+        onResume();
     }
 
     class ViewPagerAdapter extends FragmentStatePagerAdapter {
@@ -348,5 +350,20 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         Intent i = new Intent(this, ChannelsActivity.class);
         i.putExtra(Constants.USER, activeUser);
         startActivity(i);
+    }
+
+    public void searchEvent(View v){
+        Intent i = new Intent(this, EventsActivity.class);
+        i.putExtra(Constants.USER, activeUser);
+        i.putExtra(Constants.CHANNEL, activeChannel);
+        startActivityForResult(i, Constants.CREATE_EVENT_REQUEST);
+
+    }
+
+    public void createEvent(View v){
+        Intent i = new Intent(this, CreateEventActivity.class);
+        i.putExtra(Constants.USER, activeUser);
+        i.putExtra(Constants.CHANNEL, activeChannel);
+        startActivityForResult(i, Constants.SEARCH_EVENT_REQUEST);
     }
 }

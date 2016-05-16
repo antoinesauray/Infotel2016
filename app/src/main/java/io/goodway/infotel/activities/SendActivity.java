@@ -15,7 +15,6 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -24,12 +23,11 @@ import java.util.Collection;
 
 import io.goodway.infotel.R;
 import io.goodway.infotel.adapters.SendingChannelAdapter;
-import io.goodway.infotel.callbacks.Callback;
 import io.goodway.infotel.model.User;
 import io.goodway.infotel.model.communication.Channel;
 import io.goodway.infotel.model.communication.Message;
 import io.goodway.infotel.sync.HttpRequest;
-import io.goodway.infotel.utils.Files;
+import io.goodway.infotel.utils.File;
 import io.goodway.infotel.utils.Preferences;
 import okhttp3.Call;
 import okhttp3.Response;
@@ -37,7 +35,7 @@ import okhttp3.Response;
 /**
  * Created by antoine on 5/11/16.
  */
-public class SendActivity extends AppCompatActivity implements Callback<Channel>, View.OnClickListener {
+public class SendActivity extends AppCompatActivity implements View.OnClickListener {
 
     // GCM SERVICE
     // Allow communication with server to display notifications to device
@@ -97,7 +95,7 @@ public class SendActivity extends AppCompatActivity implements Callback<Channel>
                                         runOnUiThread(new Runnable() {
                                             @Override
                                             public void run() {
-                                                adapter.add(new Channel(channels.optInt("id"), channels.optString("name"), channels.optString("avatar")));
+                                                adapter.add(new Channel(channels.optInt("id"), channels.optString("name"), channels.optString("full_name"), channels.optString("avatar")));
                                             }
                                         });
                                     } catch (JSONException e) {
@@ -135,7 +133,7 @@ public class SendActivity extends AppCompatActivity implements Callback<Channel>
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
 
-        adapter = new SendingChannelAdapter(this, this);
+        adapter = new SendingChannelAdapter(this);
 
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
@@ -161,16 +159,27 @@ public class SendActivity extends AppCompatActivity implements Callback<Channel>
         String url = intent.getStringExtra(Intent.EXTRA_TEXT);
         if (url != null) {
             // Update UI to reflect text being shared
-            if (Files.isImageFile(url)){
+            Log.d(TAG, "Received intent with url="+url);
+            if (File.isImageFile(url)){
+                Log.d(TAG, "image");
                 attachment_type = Message.IMAGE;
+                attachment=url;
             }
-            else if(Files.isVideoFile(url)){
+            else if(File.isVideoFile(url)){
+                Log.d(TAG, "video");
                 attachment_type = Message.VIDEO;
+                attachment=url;
+            }
+            else if(File.isPdfFile(url)){
+                Log.d(TAG, "youtube");
+                attachment_type = Message.PDF;
+                attachment=url;
             }
             else{
+                Log.d(TAG, "file");
                 attachment_type = Message.FILE;
+                attachment=url;
             }
-            attachment=url;
         }
     }
 
@@ -182,41 +191,12 @@ public class SendActivity extends AppCompatActivity implements Callback<Channel>
         }
     }
 
-    @Override
-    public void onResume(){
-        super.onResume();
-        adapter.clear();
-        HttpRequest.channels(new okhttp3.Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if(response.code()==200){
-                    JSONObject jsonResult = null;
-                    try {
-                        jsonResult = new JSONObject(response.body().string());
-                        JSONArray channels = jsonResult.optJSONArray("channels");
-                        int length=channels.length();
-                        if(length==0){
-                            // On a un probleme
-                        }
-                        else{
-                            for(int i=0;i<length;i++){
-                                JSONObject obj = channels.getJSONObject(i);
-                                Log.d(TAG, obj.optString("name"));
-                                adapter.add(new Channel(obj.optInt("id"), obj.optString("name"), obj.optString("avatar")));
-                            }
-                        }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-            }
-        });
+    void handleYoutube(Intent intent) {
+        String id = intent.getExtras().getString(Intent.EXTRA_TEXT);
+        if (id != null) {
+            // Update UI to reflect image being shared
+            attachment = id;
+        }
     }
 
     @Override
@@ -227,33 +207,6 @@ public class SendActivity extends AppCompatActivity implements Callback<Channel>
                 return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void callback(Channel channel) {
-        if(activeUser!=null) {
-            HttpRequest.addSubscription(new okhttp3.Callback() {
-                @Override
-                public void onFailure(Call call, IOException e) {
-
-                }
-
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    if (response.code() == 201) {
-                        finish();
-                        //Intent i = new Intent(ChannelsActivity.this, MainActivity.class);
-                        //i.putExtra(Constants.USER, activeUser);
-                        //startActivity(i);
-                    } else {
-                        Log.d(TAG, "error " + response.code());
-                    }
-                }
-            }, activeUser, channel);
-        }
-        else{
-            Toast.makeText(SendActivity.this, R.string.not_authenticated, Toast.LENGTH_SHORT).show();
-        }
     }
 
     @Override
@@ -277,6 +230,7 @@ public class SendActivity extends AppCompatActivity implements Callback<Channel>
                         if (response.code() == 201) {
                             //Toast.makeText(ChatFragment.this.getContext(), "Message reçu par le serveur", Toast.LENGTH_SHORT).show();
                             Log.d(TAG, response.code() + "");
+                            finish();
                         } else {
                             Log.d(TAG, response.code() + "");
                         }

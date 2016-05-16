@@ -29,16 +29,14 @@ public class SendingChannelAdapter extends RecyclerView.Adapter<SendingChannelAd
 
     private List<Channel> mDataset;
     private Context context;
-    private Callback callback;
     private HashMap<Integer, Channel> selectedPositions;
 
     private static final String TAG="ChannelAdapter";
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public SendingChannelAdapter(Context context, Callback<Channel> callback) {
+    public SendingChannelAdapter(Context context){
         mDataset = new ArrayList<Channel>();
         this.context = context;
-        this.callback = callback;
         selectedPositions = new HashMap<Integer, Channel>();
     }
 

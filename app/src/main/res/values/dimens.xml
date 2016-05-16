@@ -9,4 +9,11 @@
     <dimen name="leftPaddingDrawer">16dp</dimen>
 
     <dimen name="card_elevation">4dp</dimen>
+    <dimen name="toolbar_elevation">8dp</dimen>
+
+    <dimen name="attachment_width">150dp</dimen>
+    <dimen name="attachment_height">100dp</dimen>
+
+    <dimen name="avatar_size">40dp</dimen>
+    <dimen name="context_size">32dp</dimen>
 </resources>

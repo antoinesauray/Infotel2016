@@ -4,6 +4,8 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
 
+import org.joda.time.DateTime;
+
 import java.util.GregorianCalendar;
 
 import io.goodway.infotel.model.User;
@@ -11,9 +13,9 @@ import io.goodway.infotel.model.User;
 /**
  * Created by antoine on 5/11/16.
  */
-public class Message implements Parcelable {
+public class Message implements Parcelable, Comparable<Message> {
 
-    public static final int TEXT =0, IMAGE=1, FILE=2, MUSIC=3, PDF=4, VIDEO=5;
+    public static final int TEXT =0, IMAGE=1, FILE=2, MUSIC=3, PDF=4, VIDEO=5, YOUTUBE=6;
 
     public int getSender_id() {
         return sender_id;
@@ -57,7 +59,18 @@ public class Message implements Parcelable {
 
     private boolean from_me;
 
-    private GregorianCalendar date;
+    private DateTime date;
+
+    public Message(int sender_id, String name, String avatar, String content, int attachment_type, String attachment_url, boolean from_me, DateTime date){
+        this.sender_id=sender_id;
+        this.name=name;
+        this.avatar=avatar;
+        this.content = content;
+        this.attachment_url =attachment_url;
+        this.attachment_type = attachment_type;
+        this.from_me = from_me;
+        this.date = date;
+    }
 
     public Message(int sender_id, String name, String avatar, String content, int attachment_type, String attachment_url, boolean from_me){
         this.sender_id=sender_id;
@@ -122,4 +135,8 @@ public class Message implements Parcelable {
                 }
             };
 
+    @Override
+    public int compareTo(Message another) {
+       return date.compareTo(another.date);
+    }
 }

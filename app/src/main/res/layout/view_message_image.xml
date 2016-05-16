@@ -13,13 +13,14 @@
 
     <ImageView
         android:id="@+id/avatar"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="@dimen/avatar_size"
+        android:layout_height="@dimen/avatar_size"
         android:layout_margin="@dimen/textMarginHorizontal"/>
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/textMarginHorizontal"
         android:orientation="vertical">
     <android.support.v7.widget.CardView
         xmlns:card_view="http://schemas.android.com/apk/res-auto"
@@ -51,8 +52,8 @@
     </android.support.v7.widget.CardView>
 
     <ImageView
-        android:layout_width="150dp"
-        android:layout_height="100dp"
+        android:layout_width="@dimen/attachment_width"
+        android:layout_height="@dimen/attachment_height"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
         android:id="@+id/attachment"/>

@@ -10,6 +10,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 
+import io.goodway.infotel.model.Event;
 import io.goodway.infotel.model.User;
 import io.goodway.infotel.model.communication.Channel;
 import io.goodway.infotel.model.communication.Message;
@@ -90,6 +91,37 @@ public class HttpRequest {
         call.enqueue(callback);
     }
 
+    public static void events(final Callback callback){
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url("http://infotel.goodway.io/api/events/all")
+                .build();
+        Call call = client.newCall(request);
+        call.enqueue(callback);
+    }
+
+    public static void createEvent(final Callback callback, User activeUser, Event event){
+        OkHttpClient client = new OkHttpClient();
+        RequestBody formBody = new FormBody.Builder()
+                .add("name", event.getName())
+                .add("avatar", event.getAvatar())
+                .add("date_start", event.getDate_start().toString())
+                .add("date_end", event.getDate_end().toString())
+                .add("place_lat_start", String.valueOf(event.getPlace_lat_start()))
+                .add("place_lng_start", String.valueOf(event.getPlace_lon_start()))
+                .add("place_lat_end", String.valueOf(event.getPlace_lat_end()))
+                .add("place_lng_end", String.valueOf(event.getPlace_lon_end()))
+                .add("creator_id", String.valueOf(activeUser.getId()))
+        .build();
+
+        Request request = new Request.Builder()
+                .url("http://infotel.goodway.io/api/auth")
+                .post(formBody)
+                .build();
+        Call call = client.newCall(request);
+        call.enqueue(callback);
+    }
+
     public static void channels(final Action<Channel> action, final FinishAction finishAction, User activeUser){
 
         new AsyncTask<User, Channel, Integer>() {
@@ -117,7 +149,7 @@ public class HttpRequest {
                                 JSONObject obj2 = new JSONObject(response2.body().string());
                                 Log.d(TAG, obj2.toString());
                                 JSONObject channel = obj2.getJSONObject("channel");
-                                publishProgress(new Channel(channel.optInt("id"), channel.optString("name"), channel.optString("avatar")));
+                                publishProgress(new Channel(channel.optInt("id"), channel.optString("name"), channel.optString("full_name"), channel.optString("avatar")));
 
                             }
                         } catch (JSONException e) {

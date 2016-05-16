@@ -46,11 +46,11 @@
             </android.support.v7.widget.Toolbar>
         </android.support.design.widget.AppBarLayout>
 
-        <android.support.v4.view.ViewPager
-            android:id="@+id/viewpager"
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior"  />
+            android:id="@+id/chatFragment"/>
+
     </LinearLayout>
 </android.support.design.widget.CoordinatorLayout>
 
@@ -111,6 +111,7 @@
             android:layout_height="wrap_content"
             android:onClick="add"
             android:gravity="center_horizontal"
+            android:visibility="gone"
             android:layout_centerInParent="true"
             android:orientation="vertical">
             <TextView
@@ -137,6 +138,7 @@
             android:id="@+id/connexion_failed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:visibility="gone"
             android:onClick="retry"
             android:gravity="center_horizontal"
             android:layout_centerInParent="true"
@@ -146,7 +148,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
                 android:textColor="@android:color/white"
-                android:text="@string/connection_failed"/>
+                android:text="@string/connexion_failed"/>
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

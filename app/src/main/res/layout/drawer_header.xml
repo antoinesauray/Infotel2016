@@ -7,8 +7,8 @@
     android:background="@color/colorPrimary">
 
     <ImageView
-        android:layout_width="70dp"
-        android:layout_height="70dp"
+        android:layout_width="@dimen/avatar_size"
+        android:layout_height="@dimen/avatar_size"
         android:layout_marginTop="48dp"
         android:src="@mipmap/ic_person_white_36dp"
         android:id="@+id/avatar"/>
@@ -21,13 +21,11 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="François Hollande"
         android:textColor="@android:color/secondary_text_dark"
         android:id="@+id/name"/>
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="françois.hollande@gov.fr"
         android:textColor="@android:color/tertiary_text_dark"
         android:id="@+id/mail"/>
     </LinearLayout>

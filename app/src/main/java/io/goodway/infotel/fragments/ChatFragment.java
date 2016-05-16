@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.LocalBroadcastManager;
@@ -16,15 +18,20 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
+import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
+import com.flipboard.bottomsheet.BottomSheetLayout;
+
+import net.danlew.android.joda.JodaTimeAndroid;
+
+import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import io.goodway.infotel.R;
 import io.goodway.infotel.adapters.MessageAdapter;
@@ -34,7 +41,6 @@ import io.goodway.infotel.model.communication.Message;
 import io.goodway.infotel.sync.HttpRequest;
 import io.goodway.infotel.sync.gcm.GCMService;
 import io.goodway.infotel.utils.Constants;
-import io.goodway.infotel.utils.Debug;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
@@ -47,8 +53,9 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     private View root;
     private RecyclerView recyclerView;
     private LinearLayoutManager layoutManager;
-    private ImageButton send;
-    private EditText message;
+    private ImageButton send, attach;
+    private AutoCompleteTextView message;
+    private BottomSheetLayout bottomSheet;
 
     private MessageAdapter adapter;
 
@@ -60,7 +67,7 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     private Channel activeChannel;
     private User activeUser;
 
-    private View selectChannel;
+    private View selectChannel, connexionFailed;
 
     // Our handler for received Intents. This will be called whenever an Intent
 // with an action named "custom-event-name" is broadcasted.
@@ -73,12 +80,14 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
             Log.d(TAG, "received message: "+message.toString());
             Log.d(TAG, "channel_id="+channel_id);
-            Log.d(TAG, "active_channel_id="+activeChannel.getId());
 
-            if(channel_id>-1 && channel_id==activeChannel.getId() && message.getSender_id()!= activeUser.getId()){
-            Log.d("displaying type", "type="+message.getAttachment_type());
-            Log.d("displaying image", "url="+message.getAttachment());
-                adapter.add(message);
+            if(activeChannel!=null) {
+                Log.d(TAG, "active_channel_id=" + activeChannel.getId());
+                if (channel_id > -1 && channel_id == activeChannel.getId() && message.getSender_id() != activeUser.getId()) {
+                    Log.d("displaying type", "type=" + message.getAttachment_type());
+                    Log.d("displaying image", "url=" + message.getAttachment());
+                    adapter.add(message);
+                }
             }
         }
     };
@@ -99,19 +108,14 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         root = inflater.inflate(R.layout.fragment_chat, container, false);
-
-
-        if(savedInstanceState!=null){
-            this.activeChannel = savedInstanceState.getParcelable(Constants.CHANNEL);
-            this.activeUser = savedInstanceState.getParcelable(Constants.USER);
-        }
-        else{
-            activeUser = getArguments().getParcelable(Constants.USER);
-        }
+        JodaTimeAndroid.init(getContext());
 
         recyclerView = (RecyclerView) root.findViewById(R.id.list);
         send = (ImageButton) root.findViewById(R.id.send);
-        message = (EditText) root.findViewById(R.id.message);
+        message = (AutoCompleteTextView) root.findViewById(R.id.message);
+        attach = (ImageButton) root.findViewById(R.id.attach);
+
+        bottomSheet = (BottomSheetLayout) root.findViewById(R.id.bottomsheet);
 
         message.setOnFocusChangeListener(this);
 
@@ -119,22 +123,34 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
         recyclerView.setItemAnimator(new DefaultItemAnimator());
 
         layoutManager = new LinearLayoutManager(getContext());
-
-        adapter = new MessageAdapter(getActivity(), recyclerView, null);
-
-
+        layoutManager.setStackFromEnd(true);
+        adapter = new MessageAdapter(getActivity(), recyclerView, layoutManager, null);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
-
         message.addTextChangedListener(this);
+
+        attach.setOnClickListener(this);
         send.setOnClickListener(this);
 
 
 
         selectChannel = root.findViewById(R.id.select_channel);
+        connexionFailed = root.findViewById(R.id.connexion_failed);
 
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
                 new IntentFilter(GCMService.MESSAGE_RECEIVED));
+
+        if(savedInstanceState!=null){
+            this.activeChannel = savedInstanceState.getParcelable(Constants.CHANNEL);
+            this.activeUser = savedInstanceState.getParcelable(Constants.USER);
+            switchChannel(activeChannel);
+        }
+        else{
+            activeUser = getArguments().getParcelable(Constants.USER);
+            message.setEnabled(false);
+            send.setEnabled(false);
+            attach.setEnabled(false);
+        }
 
         //activeChannel = new Channel(1, "Général");
         return root;
@@ -149,7 +165,6 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
     public void onResume(){
         super.onResume();
-        switchChannel(activeChannel);
     }
 
     @Override
@@ -174,43 +189,60 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
     @Override
     public void onClick(View v) {
-        String content = message.getText().toString();
-        if(content.length()>0){
-            final Message m = new Message(activeUser.getId(), name, avatar, content, Message.TEXT, "http://www.infotel.com/wp-content/uploads/2013/03/logo.png", true);
-            adapter.add(m);
-            message.getText().clear();
-            HttpRequest.messageToTopic(new Callback() {
-                @Override
-                public void onFailure(Call call, IOException e) {
+        switch(v.getId()){
+            case R.id.send:
+                String content = message.getText().toString();
+                if(content.length()>0){
+                    final Message m = new Message(activeUser.getId(), name, avatar, content, Message.TEXT, "http://www.infotel.com/wp-content/uploads/2013/03/logo.png", true);
+                    adapter.add(m);
+                    message.getText().clear();
+                    HttpRequest.messageToTopic(new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
 
-                }
+                        }
 
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    if(response.code()==201){
-                        //Toast.makeText(ChatFragment.this.getContext(), "Message reçu par le serveur", Toast.LENGTH_SHORT).show();
-                        Log.d(TAG, response.code()+"");
-                    }
-                    else{
-                        Log.d(TAG, response.code()+"");
-                    }
+                        @Override
+                        public void onResponse(Call call, Response response) throws IOException {
+                            if(response.code()==201){
+                                //Toast.makeText(ChatFragment.this.getContext(), "Message reçu par le serveur", Toast.LENGTH_SHORT).show();
+                                Log.d(TAG, response.code()+"");
+                            }
+                            else{
+                                Log.d(TAG, response.code()+"");
+                            }
+                        }
+                    }, activeChannel, m);
                 }
-            }, activeChannel, m);
+                break;
+            case R.id.attach:
+                bottomSheet.showWithSheetView(LayoutInflater.from(getContext()).inflate(R.layout.view_context_post, bottomSheet, false));
+                break;
         }
+
     }
 
     public void switchChannel(final Channel channel){
         if(channel!=null) {
             this.activeChannel = channel;
             Log.d(TAG, "switching to channel " + channel.getName());
-            if(selectChannel!=null){selectChannel.setVisibility(View.GONE);}
-            message.setEnabled(true);
-            send.setEnabled(true);
+            if(selectChannel!=null){
+                selectChannel.setVisibility(View.GONE);
+            }
+            if(connexionFailed!=null){connexionFailed.setVisibility(View.GONE);}
             adapter.clear();
             HttpRequest.messages(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            connexionFailed.setVisibility(View.VISIBLE);
+                            message.setEnabled(false);
+                            send.setEnabled(false);
+                            attach.setEnabled(false);
+                        }
+                    });
                 }
 
                 @Override
@@ -222,27 +254,34 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
                             JSONArray channels = jsonResult.optJSONArray("messages");
                             int length = channels.length();
                             Log.d(TAG, "retrieved "+length+" messages on channel "+channel.getName());
+                            final ArrayList<Message> messages = new ArrayList<Message>();
                             for (int i = 0; i < length; i++) {
                                 final JSONObject obj = channels.optJSONObject(i);
                                 final int sender_id = obj.optInt("user_id");
                                 Log.d(TAG, "sender_id="+sender_id);
                                 Log.d(TAG, "active_sender_id="+activeUser.getId());
-                                getActivity().runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        adapter.add(new Message(
-                                                sender_id,
-                                                obj.optString("name"),
-                                                obj.optString("avatar"),
-                                                obj.optString("content"),
-                                                obj.optInt("attachment_type"),
-                                                obj.optString("attachment"),
-                                                sender_id == activeUser.getId()
-                                        ));
-                                    }
-                                });
+                                messages.add(new Message(
+                                        sender_id,
+                                        obj.optString("name"),
+                                        obj.optString("avatar"),
+                                        obj.optString("content"),
+                                        obj.optInt("attachment_type"),
+                                        obj.optString("attachment"),
+                                        sender_id == activeUser.getId(),
+                                        new DateTime(obj.optString("createdAt"))
+                                ));
+                                adapter.setMessages(messages);
 
                             }
+                            getActivity().runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    recyclerView.scrollToPosition(messages.size());
+                                    attach.setEnabled(true);
+                                    message.setEnabled(true);
+                                    send.setEnabled(true);
+                                }
+                            });
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -252,6 +291,9 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
         }
         else{
             Log.d(TAG, "Channel null");
+            attach.setEnabled(false);
+            send.setEnabled(false);
+            message.setEnabled(false);
         }
     }
 

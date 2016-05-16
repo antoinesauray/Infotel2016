@@ -18,9 +18,28 @@
     <string name="add">Ajouter</string>
     <string name="select_channel">Selectionner un channel en ouvrant le menu à gauche</string>
     <string name="add_channel">Ajouter un channel</string>
-    <string name="connection_failed">La connexion a échoué</string>
+    <string name="connexion_failed">La connexion a échoué</string>
     <string name="retry">Réessayer</string>
     <string name="addComment">Ajoutez un commentaire</string>
     <string name="auth_failure">Echec de l\'authentification</string>
     <string name="not_authenticated">Vous n\'êtes pas encore authentifié</string>
+
+    <string name="downloading">Téléchargement en cours</string>
+    <string name="open_file">Fichier téléchargé</string>
+    <string name="file_downloaded">Fichier téléchargé</string>
+    <string name="open">Ouvrir</string>
+
+
+    <string name="search">Rechercher parmi mes évènement</string>
+    <string name="create_event">Créer une nouvel évènement</string>
+    <string name="attach_image">Attacher une image</string>
+    <string name="carpooling">Proposerune annonce de covoiturage</string>
+    <string name="running">Planifier un Jogging</string>
+    <string name="biking">Vélo</string>
+    <string name="afterwork">Organiser un Afterwork</string>
+
+    <string name="location">Lieu</string>
+    <string name="unset">Non renseigné</string>
+    <string name="channels">Channels</string>
+
 </resources>

@@ -15,6 +15,7 @@ import java.util.List;
 
 import io.goodway.infotel.R;
 import io.goodway.infotel.callbacks.Callback;
+import io.goodway.infotel.model.Event;
 import io.goodway.infotel.model.communication.Channel;
 
 /**
@@ -23,9 +24,9 @@ import io.goodway.infotel.model.communication.Channel;
  * @version 1.0
  */
 
-public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelHolder> {
+public class EventAdapter extends RecyclerView.Adapter<EventAdapter.ChannelHolder> {
 
-    private List<Channel> mDataset;
+    private List<Event> mDataset;
     private Context context;
     private Callback callback;
     private int selectedPos=-1; // -1 allows to not start in a chat. 0 would make the client start within first chat
@@ -33,8 +34,8 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelH
     private static final String TAG="LINE_ADAPTER";
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public ChannelAdapter(Context context, Callback<Channel> callback) {
-        mDataset = new ArrayList<Channel>();
+    public EventAdapter(Context context, Callback<Channel> callback) {
+        mDataset = new ArrayList<Event>();
         this.context = context;
         this.callback = callback;
     }
@@ -52,29 +53,14 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelH
     public void onBindViewHolder(ChannelHolder holder, int position) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
-        Channel c = mDataset.get(position);
+        Event c = mDataset.get(position);
         holder.setItem(c);
-
-        Log.d("selectedPos", "pos="+selectedPos);
-        Log.d("position", "pos="+position);
-        if(c.getPendingMessages()!=0){
-            holder.name.setText("# "+c.getFullName()+" ("+c.getPendingMessages()+")");
-        }
-        else{
-            holder.name.setText("# "+c.getFullName());
-        }
-        if(selectedPos == position){
-            holder.itemView.setBackgroundColor(context.getResources().getColor(android.R.color.white));
-            holder.name.setTextColor(context.getResources().getColor(R.color.colorAccent));
-        }
-        else{
-            holder.itemView.setBackgroundColor(context.getResources().getColor(R.color.colorPrimary));
-            holder.name.setTextColor(context.getResources().getColor(android.R.color.white));
-        }
+        holder.itemView.setBackgroundColor(context.getResources().getColor(android.R.color.white));
+        holder.name.setTextColor(context.getResources().getColor(R.color.colorAccent));
     }
 
 
-    public void add(Channel item) {
+    public void add(Event item) {
         Log.d(TAG, "adding Channel: "+item);
         int position = mDataset.size();
         mDataset.add(position, item);
@@ -87,20 +73,6 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelH
         notifyItemRangeRemoved(0, size);
     }
 
-    public void incrementChannelPendingMessages(int channel_id){
-        Iterator<Channel> it = mDataset.iterator();
-        int i=0;
-        while(it.hasNext()) {
-            Channel next = it.next();
-            if(next.getId()==channel_id){
-                next.incrementPendingMessages();
-                notifyItemChanged(i);
-                break;
-            }
-            i++;
-        }
-    }
-
     // Return the size of your dataset (invoked by the layout manager)
     @Override
     public int getItemCount() {
@@ -110,7 +82,7 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelH
     public class ChannelHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         // each data item is just a string in this case
         //TextView s_name, a_name;
-        Channel item;
+        Event item;
         TextView name;
         ImageView icon;
         View root;
@@ -123,17 +95,12 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelH
             icon = (ImageView) root.findViewById(R.id.icon);
         }
 
-        public void setItem(Channel item) {
+        public void setItem(Event item) {
             this.item = item;
         }
 
         @Override
         public void onClick(View v) {
-            item.resetPendingMessage();
-            notifyItemChanged(selectedPos);
-            selectedPos = getLayoutPosition();
-            notifyItemChanged(selectedPos);
-            Log.d("channel", item.getName());
             callback.callback(item);
         }
     }
