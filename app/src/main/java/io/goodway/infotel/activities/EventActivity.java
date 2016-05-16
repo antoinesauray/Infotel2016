@@ -260,7 +260,7 @@ public class EventActivity extends AppCompatActivity implements OnMapReadyCallba
     @Override
     public void onMapReady(GoogleMap googleMap) {
         LatLng center = new LatLng(event.getPlace_lat_start(), event.getPlace_lon_start());
-        googleMap.moveCamera(CameraUpdateFactory.newLatLng(center));
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(center, 12));
         googleMap.getUiSettings().setMapToolbarEnabled(true);
         Marker marker = googleMap.addMarker(new MarkerOptions()
                 .title(event.getName())

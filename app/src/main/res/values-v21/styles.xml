@@ -10,6 +10,7 @@
                 <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
 
                 <item name="android:windowContentTransitions">true</item>
+                <item name="android:windowTranslucentStatus">true</item>
 
                 <item name="android:windowEnterTransition">@android:transition/explode</item>
                 <item name="android:windowExitTransition">@android:transition/explode</item>

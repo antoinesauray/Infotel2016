@@ -1,5 +1,6 @@
 package io.goodway.infotel.fragments;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -70,6 +71,13 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     private User activeUser;
 
     private View selectChannel, connexionFailed;
+    private Activity mActivity;
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        mActivity = activity;
+    }
 
     // Our handler for received Intents. This will be called whenever an Intent
 // with an action named "custom-event-name" is broadcasted.
@@ -97,7 +105,7 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     @Override
     public void onDestroy() {
         // Unregister since the activity is about to be closed.
-        LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(mMessageReceiver);
+        LocalBroadcastManager.getInstance(mActivity).unregisterReceiver(mMessageReceiver);
         super.onDestroy();
     }
 
@@ -126,7 +134,7 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
         layoutManager = new LinearLayoutManager(getContext());
         layoutManager.setStackFromEnd(true);
-        adapter = new MessageAdapter(getActivity(), activeUser, recyclerView, layoutManager, null);
+        adapter = new MessageAdapter(mActivity, activeUser, recyclerView, layoutManager, null);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
         message.addTextChangedListener(this);
@@ -134,12 +142,10 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
         attach.setOnClickListener(this);
         send.setOnClickListener(this);
 
-
-
         selectChannel = root.findViewById(R.id.select_channel);
         connexionFailed = root.findViewById(R.id.connexion_failed);
 
-        LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mMessageReceiver,
+        LocalBroadcastManager.getInstance(mActivity).registerReceiver(mMessageReceiver,
                 new IntentFilter(GCMService.MESSAGE_RECEIVED));
 
         if(savedInstanceState!=null){
@@ -212,7 +218,7 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
     }
 
-    private void sendMessage(final Message m){
+    public void sendMessage(final Message m){
             adapter.add(m);
             message.getText().clear();
             HttpRequest.messageToTopic(new Callback() {
@@ -238,7 +244,7 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     public void switchChannel(final Channel channel){
         if(channel!=null) {
             this.activeChannel = channel;
-            ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle("#"+activeChannel.getFullName());
+            ((AppCompatActivity)mActivity).getSupportActionBar().setTitle("#"+activeChannel.getFullName());
             Log.d(TAG, "switching to channel " + channel.getName());
             if(selectChannel!=null){
                 selectChannel.setVisibility(View.GONE);
@@ -248,7 +254,7 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
             HttpRequest.messages(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-                    getActivity().runOnUiThread(new Runnable() {
+                    mActivity.runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             connexionFailed.setVisibility(View.VISIBLE);
@@ -290,7 +296,7 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
                                 adapter.setMessages(messages);
 
                             }
-                            getActivity().runOnUiThread(new Runnable() {
+                            mActivity.runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
                                     recyclerView.scrollToPosition(messages.size());

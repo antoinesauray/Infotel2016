@@ -39,6 +39,9 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -198,6 +201,19 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
 
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
+
+        if(savedInstanceState!=null){
+            this.activeChannel = savedInstanceState.getParcelable(Constants.CHANNEL);
+            this.activeUser = savedInstanceState.getParcelable(Constants.USER);
+            //switchChannel(activeChannel);
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState (Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelable(Constants.CHANNEL, activeChannel);
+        outState.putParcelable(Constants.USER, activeUser);
     }
 
     @Override
@@ -427,13 +443,23 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
 
                     @Override
                     public void onResponse(Call call, final Response response) throws IOException {
-                        Log.d(TAG, response.body().string());
                         Log.d(TAG, response.code()+"");
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 pd.hide();
-                                if(response.code()!=200){
+                                if(response.code()==201){
+                                    try {
+                                        JSONObject jsonResult = new JSONObject(response.body().string());
+                                        String file = jsonResult.optString("file");
+                                        chatFragment.sendMessage(new Message(activeUser, "Image partagée par "+activeUser.getFirstame(), Message.IMAGE, "http://infotel.goodway.io/api/uploads/"+file, true));
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                else if(response.code()!=200){
                                     Toast.makeText(MainActivity.this, "echec de l'envoi du fichier", Toast.LENGTH_SHORT).show();
                                 }
                             }
