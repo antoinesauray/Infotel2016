@@ -17,7 +17,7 @@
         android:layout_width="@dimen/avatar_size"
         android:layout_height="@dimen/avatar_size"
         android:layout_marginLeft="@dimen/leftPaddingDrawer"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="@dimen/header_margin_top"
         android:src="@mipmap/ic_person_white_36dp"
         android:id="@+id/avatar"/>
 

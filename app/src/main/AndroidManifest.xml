@@ -17,7 +17,6 @@
         android:protectionLevel="signature" />
 
     <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
-    <uses-permission android:name="io.goodway.infitek.permission.C2D_MESSAGE" />
 
     <application
         android:allowBackup="true"

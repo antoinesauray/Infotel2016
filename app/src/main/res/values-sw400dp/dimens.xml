@@ -13,7 +13,7 @@
     <dimen name="attachment_width">300dp</dimen>
     <dimen name="attachment_height">200dp</dimen>
 
-    <dimen name="avatar_size">70dp</dimen>
+    <dimen name="avatar_size">60dp</dimen>
     <dimen name="header_size">200dp</dimen>
 
 </resources>
