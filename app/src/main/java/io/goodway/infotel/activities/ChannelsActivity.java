@@ -55,6 +55,7 @@ import io.goodway.infotel.sync.HttpRequest;
 import io.goodway.infotel.sync.gcm.QuickstartPreferences;
 import io.goodway.infotel.sync.gcm.RegistrationIntentService;
 import io.goodway.infotel.utils.Constants;
+import android.widget.Toast;
 import okhttp3.Call;
 import okhttp3.Response;
 
@@ -165,6 +166,7 @@ public class ChannelsActivity extends AppCompatActivity implements Callback<Chan
                 }
                 else{
                     Log.d(TAG, "error "+response.code());
+                    Toast.makeText(ChannelsActivity.this, "Vous êtes déjà présent dans ce channel", Toast.LENGTH_SHORT).show();
                 }
             }
         }, activeUser, channel);

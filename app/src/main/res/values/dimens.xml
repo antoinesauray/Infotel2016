@@ -12,8 +12,8 @@
     <dimen name="toolbar_elevation">8dp</dimen>
     <dimen name="fab_elevation">16dp</dimen>
 
-    <dimen name="attachment_width">200dp</dimen>
-    <dimen name="attachment_height">100dp</dimen>
+    <dimen name="attachment_width">300dp</dimen>
+    <dimen name="attachment_height">200dp</dimen>
 
     <dimen name="map_height">300dp</dimen>
 

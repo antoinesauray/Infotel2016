@@ -60,10 +60,13 @@ public class DiscoveredChannelAdapter extends RecyclerView.Adapter<DiscoveredCha
         if(c.getAvatar()!=null && !c.getAvatar().isEmpty()){
             Picasso.with(context)
                     .load(c.getAvatar())
-                    //.error(R.mipmap)
+                    .error(R.mipmap.ic_public_black_36dp)
                     .fit().centerCrop()
                     .transform(new Image.ImageTransCircleTransform())
                     .into(holder.icon);
+        }
+        else{
+            holder.icon.setBackgroundResource(R.mipmap.ic_public_black_36dp);
         }
 
     }

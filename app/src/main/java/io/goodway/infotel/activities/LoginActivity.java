@@ -243,12 +243,17 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                         Log.d(TAG, "Echec de l'authentification");
                         Preferences.removeStringPreference(LoginActivity.this, Constants.EMAIL);
                         Preferences.removeStringPreference(LoginActivity.this, Constants.PASSWORD);
-                        showProgress(false);
-
-                        mEmailView.setText(email);
+                        
+                        runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    showProgress(false);
+                                    mEmailView.setText(email);
 
                         mPasswordView.setError(getString(R.string.error_incorrect_password));
                         mPasswordView.requestFocus();
+                                }
+                            });
                     }
                 }
             }, email, password);
