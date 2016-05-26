@@ -13,6 +13,7 @@ public class Constants {
     public static final String PASSWORD = "password";
     public static final String ATTACHMENT = "attachment";
 
-    public static final int DOWNLOAD_FILE = 1, PLACE_PICKER_REQUEST = 2, CREATE_EVENT_REQUEST=3, SEARCH_EVENT_REQUEST=4, LOAD_IMAGE_REQUEST=5;
+    public static final int DOWNLOAD_FILE = 1, PLACE_PICKER_REQUEST = 2, CREATE_EVENT_REQUEST=3, SEARCH_EVENT_REQUEST=4, LOAD_IMAGE_REQUEST=5, IMAGE_CAPTURE_REQUEST=6,
+    VIDEO_CAPTURE_REQUEST=7;
 
 }

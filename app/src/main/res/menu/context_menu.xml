@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_subheader_context"
+        android:title="@string/context_post">
+    <item android:id="@+id/search"
+        android:icon="@drawable/ic_search_black_24dp"
+        android:title="@string/search"/>
+    <item android:id="@+id/create_event"
+        android:icon="@mipmap/ic_add_black_24dp"
+        android:title="@string/create_event"/>
+
+    </item>
+    <item
+        android:id="@+id/menu_subheader_attachment"
+        android:title="@string/attachments"
+        >
+    <item android:id="@+id/attach_image"
+        android:icon="@drawable/ic_image_black_24dp"
+        android:title="@string/attach_image"/>
+    <item android:id="@+id/take_picture"
+        android:icon="@drawable/ic_add_a_photo_black_24dp"
+        android:title="@string/take_picture"/>
+    <item android:id="@+id/take_video"
+        android:icon="@drawable/ic_video_label_black_24dp"
+        android:title="@string/take_video"/>
+    </item>
+
+</menu>

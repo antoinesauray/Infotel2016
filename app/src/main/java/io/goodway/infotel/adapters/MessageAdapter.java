@@ -7,7 +7,11 @@ import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Paint;
+import android.graphics.drawable.BitmapDrawable;
+import android.media.MediaMetadataRetriever;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.support.design.widget.Snackbar;
 import android.support.v7.util.SortedList;
@@ -22,7 +26,9 @@ import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.google.android.gms.maps.GoogleMap;
@@ -168,7 +174,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     imHolder.mainLayout.setGravity(Gravity.LEFT);
                     findAndSetAvatar(position, m, imHolder);
                 }
-
+                Log.d(TAG, "image url = "+m.getAttachment());
                 Picasso.with(activity)
                         .load(m.getAttachment())
                         .error(R.mipmap.ic_image_black_24dp)
@@ -269,7 +275,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 }
                 break;
             case Message.VIDEO:
-                VideoMessageViewHolder vmHolder = (VideoMessageViewHolder) holder;
+                final VideoMessageViewHolder vmHolder = (VideoMessageViewHolder) holder;
                 vmHolder.content.setText(m.getContent());
                 if (m.from_me()) {
                     vmHolder.avatar.setVisibility(View.INVISIBLE);
@@ -278,10 +284,43 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     vmHolder.avatar.setVisibility(View.VISIBLE);
                     vmHolder.mainLayout.setGravity(Gravity.LEFT);
                     findAndSetAvatar(position, m, vmHolder);
-                    vmHolder.attachment.setVideoPath(m.getAttachment());
-                    vmHolder.attachment.setMediaController(new MediaController(activity)); //sets MediaController in the video view
-                    vmHolder.attachment.start();
                 }
+                Log.d(TAG, "video_path="+m.getAttachment());
+                final MediaController mediaController = new MediaController(activity);
+                mediaController.setAnchorView(vmHolder.attachment);
+                vmHolder.video_loading_progress.setVisibility(View.VISIBLE);
+                Uri video = Uri.parse(m.getAttachment() );
+                vmHolder.attachment.setMediaController(mediaController);
+                vmHolder.attachment.setVideoURI(video);
+                vmHolder.attachment.requestFocus();
+                vmHolder.attachment.setOnPreparedListener(new MediaPlayer.OnPreparedListener()
+                {
+                    public void onPrepared(MediaPlayer mp)
+                    {
+                        //first starting the video, when loaded
+                        vmHolder.attachment.start();
+                        //then waiting for 1 millisecond
+                        try {
+                            Thread.sleep(1);
+                        }
+                        catch (InterruptedException e) {
+                            //     TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                        //then pausing the video. i guess it's the first frame
+                        vmHolder.attachment.pause();
+                        mediaController.show();
+                        vmHolder.video_loading_progress.setVisibility(View.GONE);
+                    }
+                });
+                vmHolder.attachment.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+                    @Override
+                    public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
+                        vmHolder.video_loading_progress.setVisibility(View.GONE);
+                        Toast.makeText(activity, "Impossible de charger la vidéo", Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
+                });
 
                 break;
             default:
@@ -368,6 +407,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         this.mDataset = items;
         try {
             notifyItemRangeChanged(0, mDataset.size());
+            for(Message item: items){
+                Log.d("MESSAGE_TYPE_RECU", item.getContent()+" (type="+item.getAttachment_type()+")");
+            }
         }
         catch(IllegalStateException e){}
         Log.d(TAG, items.toString());
@@ -442,6 +484,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         LinearLayout mainLayout;
         TextView content;
         VideoView attachment;
+        ProgressBar video_loading_progress;
 
         public VideoMessageViewHolder(LinearLayout mainLayout) {
             super(mainLayout);
@@ -449,6 +492,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             mainLayout.setOnClickListener(this);
             content = (TextView) mainLayout.findViewById(R.id.content);
             attachment = (VideoView) mainLayout.findViewById(R.id.attachment);
+            video_loading_progress = (ProgressBar) mainLayout.findViewById(R.id.video_loading_progress);
         }
 
         public void setItem(Message item) {

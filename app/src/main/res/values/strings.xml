@@ -29,14 +29,18 @@
     <string name="open">Ouvrir</string>
 
 
-    <string name="search">Rechercher parmi les contextes</string>
-    <string name="create_event">Créer un nouveau contexte</string>
+    <string name="search">Rechercher</string>
+    <string name="create_event">Créer</string>
     <string name="attach_image">Attacher une image</string>
+    <string name="take_picture">Prendre une photo</string>
+    <string name="take_video">Prendre une vidéo</string>
     <string name="carpooling">Covoiturage</string>
     <string name="running">Jogging</string>
     <string name="biking">Vélo</string>
     <string name="afterwork">Afterwork</string>
     <string name="infotel_event">Evènement entreprise</string>
+
+    <string name="context_post">Post contextuel</string>
 
     <string name="location">Lieu</string>
     <string name="unset">Non renseigné</string>
@@ -52,12 +56,16 @@
     <string name="not_suscribed">Ne participe pas</string>
     <string name="maybe">Peut-être</string>
 
+
+    <string name="no_camera_app">Aucune application de caméra installée</string>
+
     <string name="category">Catégorie</string>
     <string name="image">Image</string>
 
     <string name="enter_name">Veuillez choisir un nom pour ce post</string>
     <string name="enter_type">Veuillez choisir un type pour ce post</string>
     <string name="enter_location">Veuillez choisir un lieu associé à ce post</string>
+    <string name="attachments">Attachements</string>
 
 
 </resources>

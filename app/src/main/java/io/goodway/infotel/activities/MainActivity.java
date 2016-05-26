@@ -10,15 +10,14 @@ import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore;
 import android.support.design.widget.NavigationView;
-import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
-import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -29,7 +28,6 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MenuItem;
-import android.view.SearchEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -39,12 +37,10 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -372,104 +368,4 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         return true;
     }
 
-    public void add(View v){
-        Intent i = new Intent(this, ChannelsActivity.class);
-        i.putExtra(Constants.USER, activeUser);
-        startActivity(i);
-    }
-
-    public void searchEvent(View v){
-        Intent i = new Intent(this, EventsActivity.class);
-        i.putExtra(Constants.USER, activeUser);
-        i.putExtra(Constants.CHANNEL, activeChannel);
-        startActivityForResult(i, Constants.SEARCH_EVENT_REQUEST);
-
-    }
-
-    public void createEvent(View v){
-        Intent i = new Intent(this, CreateEventActivity.class);
-        i.putExtra(Constants.USER, activeUser);
-        i.putExtra(Constants.CHANNEL, activeChannel);
-        startActivityForResult(i, Constants.CREATE_EVENT_REQUEST);
-    }
-
-    public void uploadImage(View v){
-        Intent galleryIntent = new Intent(
-                Intent.ACTION_PICK,
-                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(galleryIntent , Constants.LOAD_IMAGE_REQUEST );
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // Check which request we're responding to
-        Log.d(TAG, "onActivityResult");
-        if (requestCode == Constants.SEARCH_EVENT_REQUEST) {
-            // Make sure the request was successful
-            Log.d(TAG, "SEARCH_EVENT_REQUEST");
-            if (resultCode == RESULT_OK) {
-                Log.d(TAG, "RESULT_OK");
-                Event e = data.getParcelableExtra(Constants.EVENT);
-                chatFragment.postEventToCurrentChannel(e);
-            }
-        } else if (requestCode == Constants.CREATE_EVENT_REQUEST) {
-            if (resultCode == RESULT_OK) {
-                Log.d(TAG, "RESULT_OK");
-                Event e = data.getParcelableExtra(Constants.EVENT);
-                chatFragment.postEventToCurrentChannel(e);
-            }
-        } else if (requestCode == Constants.LOAD_IMAGE_REQUEST) {
-            Log.d(TAG, "LOAD_IMAGE_REQUEST");
-            if (resultCode == RESULT_OK && data != null) {
-                Uri imageUri = data.getData();
-                final ProgressDialog pd = new ProgressDialog(this);
-                pd.setTitle("Envoi du fichier image");
-                pd.setIndeterminate(true);
-                pd.show();
-                HttpRequest.upload(new okhttp3.Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        Log.d(TAG, "failure");
-                        Log.d(TAG, e.toString());
-                        e.printStackTrace();
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                pd.hide();
-                                Toast.makeText(MainActivity.this, "echec de l'envoi du fichier", Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onResponse(Call call, final Response response) throws IOException {
-                        Log.d(TAG, response.code()+"");
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                pd.hide();
-                                if(response.code()==201){
-                                    try {
-                                        JSONObject jsonResult = new JSONObject(response.body().string());
-                                        String file = jsonResult.optString("file");
-                                        chatFragment.sendMessage(new Message(activeUser, "Image partagée par "+activeUser.getFirstame(), Message.IMAGE, "http://infotel.goodway.io/api/uploads/"+file, true));
-                                    } catch (JSONException e) {
-                                        e.printStackTrace();
-                                    } catch (IOException e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-                                else if(response.code()!=200){
-                                    Toast.makeText(MainActivity.this, "echec de l'envoi du fichier", Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                        });
-                    }
-                }, new File(io.goodway.infotel.utils.File.getPath(this, imageUri)), MediaType.parse(io.goodway.infotel.utils.File.getMimeType(this, imageUri)));
-            }
-            else{
-                Log.d(TAG, "Data null");
-            }
-        }
-    }
 }

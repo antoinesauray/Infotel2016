@@ -1,13 +1,16 @@
 package io.goodway.infotel.fragments;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
@@ -18,12 +21,15 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 import com.flipboard.bottomsheet.BottomSheetLayout;
+import com.flipboard.bottomsheet.commons.MenuSheetView;
 
 import net.danlew.android.joda.JodaTimeAndroid;
 
@@ -32,10 +38,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
 import io.goodway.infotel.R;
+import io.goodway.infotel.activities.ChannelsActivity;
+import io.goodway.infotel.activities.CreateEventActivity;
+import io.goodway.infotel.activities.EventsActivity;
 import io.goodway.infotel.adapters.MessageAdapter;
 import io.goodway.infotel.model.Event;
 import io.goodway.infotel.model.User;
@@ -44,8 +54,10 @@ import io.goodway.infotel.model.communication.Message;
 import io.goodway.infotel.sync.HttpRequest;
 import io.goodway.infotel.sync.gcm.GCMService;
 import io.goodway.infotel.utils.Constants;
+import io.goodway.infotel.utils.Image;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.MediaType;
 import okhttp3.Response;
 
 /**
@@ -72,6 +84,8 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
 
     private View selectChannel, connexionFailed;
     private Activity mActivity;
+
+    private File imageAttachment;
 
     @Override
     public void onAttach(Activity activity) {
@@ -212,7 +226,35 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
                 }
                 break;
             case R.id.attach:
-                bottomSheet.showWithSheetView(LayoutInflater.from(getContext()).inflate(R.layout.view_context_post, bottomSheet, false));
+                MenuSheetView menuSheetView =
+                        new MenuSheetView(getActivity(), MenuSheetView.MenuType.GRID, R.string.context_post, new MenuSheetView.OnMenuItemClickListener() {
+                            @Override
+                            public boolean onMenuItemClick(MenuItem item) {
+                                switch(item.getItemId()){
+                                    case R.id.search:
+                                        searchEvent();
+                                        break;
+                                    case R.id.create_event:
+                                        createEvent();
+                                        break;
+                                    case R.id.attach_image:
+                                        attachImage();
+                                        break;
+                                    case R.id.take_picture:
+                                        takePicture();
+                                        break;
+                                    case R.id.take_video:
+                                        takeVideo();
+                                        break;
+                                }
+                                if (bottomSheet.isSheetShowing()) {
+                                    bottomSheet.dismissSheet();
+                                }
+                                return true;
+                            }
+                        });
+                menuSheetView.inflateMenu(R.menu.context_menu);
+                bottomSheet.showWithSheetView(menuSheetView);
                 break;
         }
 
@@ -333,5 +375,159 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
     public void postEventToCurrentChannel(Event e){
         Log.d(TAG, "posting event message");
         sendMessage(new Message(activeUser, "Linked Event", Message.EVENT, String.valueOf(e.getId()), true));
+    }
+
+    private void add(){
+        Intent i = new Intent(mActivity, ChannelsActivity.class);
+        i.putExtra(Constants.USER, activeUser);
+        startActivity(i);
+    }
+
+    private void searchEvent(){
+        Intent i = new Intent(mActivity, EventsActivity.class);
+        i.putExtra(Constants.USER, activeUser);
+        i.putExtra(Constants.CHANNEL, activeChannel);
+        startActivityForResult(i, Constants.SEARCH_EVENT_REQUEST);
+
+    }
+
+    private void createEvent(){
+        Intent i = new Intent(mActivity, CreateEventActivity.class);
+        i.putExtra(Constants.USER, activeUser);
+        i.putExtra(Constants.CHANNEL, activeChannel);
+        startActivityForResult(i, Constants.CREATE_EVENT_REQUEST);
+    }
+
+    private void attachImage(){
+        Intent galleryIntent = new Intent(
+                Intent.ACTION_PICK,
+                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(galleryIntent , Constants.LOAD_IMAGE_REQUEST );
+    }
+
+    private void takePicture(){
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(mActivity.getPackageManager()) != null) {
+            imageAttachment=null;
+            try {
+                imageAttachment = Image.createImageFile();
+            } catch (IOException ex) {
+                // Error occurred while creating the File
+                ex.printStackTrace();
+            }
+            // Continue only if the File was successfully created
+            if (imageAttachment != null) {
+                Log.d(TAG, "successful file creation");
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
+                        Uri.fromFile(imageAttachment));
+                startActivityForResult(takePictureIntent, Constants.IMAGE_CAPTURE_REQUEST);
+            }
+        }
+        else{
+            Toast.makeText(mActivity, R.string.no_camera_app, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void takeVideo(){
+        Intent takeVideoIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+        if (takeVideoIntent.resolveActivity(mActivity.getPackageManager()) != null) {
+            startActivityForResult(takeVideoIntent, Constants.VIDEO_CAPTURE_REQUEST);
+        }
+        else{
+            Toast.makeText(mActivity, R.string.no_camera_app, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Check which request we're responding to
+        Log.d(TAG, "onActivityResult");
+        if (requestCode == Constants.SEARCH_EVENT_REQUEST) {
+            // Make sure the request was successful
+            Log.d(TAG, "SEARCH_EVENT_REQUEST");
+            if (resultCode == Activity.RESULT_OK) {
+                Log.d(TAG, "RESULT_OK");
+                Event e = data.getParcelableExtra(Constants.EVENT);
+                postEventToCurrentChannel(e);
+            }
+        } else if (requestCode == Constants.CREATE_EVENT_REQUEST) {
+            if (resultCode == Activity.RESULT_OK) {
+                Log.d(TAG, "RESULT_OK");
+                Event e = data.getParcelableExtra(Constants.EVENT);
+                postEventToCurrentChannel(e);
+            }
+        } else if(requestCode == Constants.IMAGE_CAPTURE_REQUEST){
+            // Create an image file name
+            Log.d(TAG, "getting camera picture");
+            if (resultCode == Activity.RESULT_OK) {
+                sendFile(imageAttachment, "Image partagée par "+activeUser.getFirstame(), MediaType.parse("image/jpg"), Message.IMAGE);
+            }
+        }
+        else if(requestCode == Constants.VIDEO_CAPTURE_REQUEST){
+            Log.d(TAG, "getting camera video");
+            if(resultCode == Activity.RESULT_OK){
+                Uri videoUri = data.getData();
+                sendFile(new File(io.goodway.infotel.utils.File.getPath(mActivity, videoUri)),"Vidéo partagée par "+activeUser.getFirstame(), MediaType.parse(io.goodway.infotel.utils.File.getMimeType(mActivity, videoUri)), Message.VIDEO);
+            }
+        }
+        else if (requestCode == Constants.LOAD_IMAGE_REQUEST) {
+            Log.d(TAG, "LOAD_IMAGE_REQUEST");
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                Uri imageUri = data.getData();
+                sendFile(new File(io.goodway.infotel.utils.File.getPath(mActivity, imageUri)), "Image partagée par "+activeUser.getFirstame(), MediaType.parse(io.goodway.infotel.utils.File.getMimeType(mActivity, imageUri)), Message.IMAGE);
+            }
+            else{
+                Log.d(TAG, "Data null");
+            }
+        }
+    }
+    public void sendFile(File f, final String message, MediaType mediaType, final int attachmentType){
+        final ProgressDialog pd = new ProgressDialog(mActivity);
+        pd.setTitle("Envoi du fichier");
+        pd.setMessage("En cours, veuillez patienter");
+        pd.setIndeterminate(true);
+        pd.show();
+        HttpRequest.upload(new okhttp3.Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.d(TAG, "failure");
+                Log.d(TAG, e.toString());
+                e.printStackTrace();
+                mActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        pd.hide();
+                        Toast.makeText(mActivity, "echec de l'envoi du fichier", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onResponse(Call call, final Response response) throws IOException {
+                Log.d(TAG, "code="+response.code());
+                if(response.code()==201){
+                    try {
+                        JSONObject jsonResult = new JSONObject(response.body().string());
+                        final String file = jsonResult.optString("file");
+                        mActivity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                pd.hide();
+                                ChatFragment.this.sendMessage(new Message(activeUser, message, attachmentType, "http://infotel.goodway.io/api/uploads/" + file, true));
+                            }
+                        });
+                    } catch (final Exception e) {
+                        Log.d(TAG, e.getMessage());
+                        mActivity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                pd.hide();
+                                Toast.makeText(mActivity, e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                };
+            }
+        }, f, mediaType);
     }
 }
