@@ -377,12 +377,6 @@ public class ChatFragment extends Fragment implements TextWatcher, View.OnClickL
         sendMessage(new Message(activeUser, "Linked Event", Message.EVENT, String.valueOf(e.getId()), true));
     }
 
-    private void add(){
-        Intent i = new Intent(mActivity, ChannelsActivity.class);
-        i.putExtra(Constants.USER, activeUser);
-        startActivity(i);
-    }
-
     private void searchEvent(){
         Intent i = new Intent(mActivity, EventsActivity.class);
         i.putExtra(Constants.USER, activeUser);

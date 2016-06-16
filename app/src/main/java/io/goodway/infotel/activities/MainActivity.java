@@ -368,4 +368,14 @@ public class MainActivity extends AppCompatActivity implements Callback<Channel>
         return true;
     }
 
+    public void add(View v){
+        Intent i = new Intent(this, ChannelsActivity.class);
+        i.putExtra(Constants.USER, activeUser);
+        startActivity(i);
+    }
+
+    public void retry(View v){
+        onResume();
+    }
+
 }

@@ -72,11 +72,10 @@ public class DiscoveredChannelAdapter extends RecyclerView.Adapter<DiscoveredCha
     }
 
 
-    public void add(Channel item) {
-        int position = mDataset.size();
-        mDataset.add(position, item);
-        notifyItemInserted(position);
-        notifyItemRangeChanged(0, mDataset.size());
+    public void add(List<Channel> items) {
+        int start = mDataset.size();
+        mDataset.addAll(items);
+        notifyItemRangeInserted(start, mDataset.size());
     }
 
     public void clear(){

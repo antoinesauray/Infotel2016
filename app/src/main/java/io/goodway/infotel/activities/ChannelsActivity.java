@@ -123,11 +123,13 @@ public class ChannelsActivity extends AppCompatActivity implements Callback<Chan
                             // On a un probleme
                         }
                         else{
+                            ArrayList<Channel> channel_list = new ArrayList<Channel>();
                             for(int i=0;i<length;i++){
                                 JSONObject obj = channels.getJSONObject(i);
                                 Log.d(TAG, obj.optString("name"));
-                                adapter.add(new Channel(obj.optInt("id"), obj.optString("name"), obj.optString("full_name"), obj.optString("avatar")));
+                                channel_list.add(new Channel(obj.optInt("id"), obj.optString("name"), obj.optString("full_name"), obj.optString("avatar")));
                             }
+                            adapter.add(channel_list);
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
